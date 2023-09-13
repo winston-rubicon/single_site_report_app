@@ -11,9 +11,9 @@ import datetime as dt
 import matplotlib.ticker as ticker
 from matplotlib import font_manager
 
-font_manager.fontManager.addfont('.streamlit/fonts/atlas_grotesk_web_regular_regular.ttf')
+font_manager.fontManager.addfont('branding/fonts/atlas_grotesk_web_regular_regular.ttf')
 
-font = font_manager.FontProperties(fname='.streamlit/fonts/atlas_grotesk_web_regular_regular.ttf')
+font = font_manager.FontProperties(fname='branding/fonts/atlas_grotesk_web_regular_regular.ttf')
 
 # Define color palette, this will change at package distribution plots!
 color_palette = ['#003264', '#0b75e1', '#87cefa', '#ffcb00', '#e7af50', '#c70039', '#800080', '#006400', '#8b4513', '#ffb6c1', '#e6e6fa', '#00A000']

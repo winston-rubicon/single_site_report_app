@@ -5,12 +5,11 @@ import os
 ###----- Imports needed for generating plots, etc. 
 from report_functions import report_functions
 from report_functions import sql_queries
+from pdf_generators.pdf_generator import internal_page, package_page
+from pdf_generators.pdf_compiler import save_pdf
 
 import pandas as pd
-import pyspark.sql.functions as F
-import pyspark
 from pyspark.sql import SparkSession
-from databricks import sql
 
 # Title for App
 st.title('Wash Index Single Site Quarterly Report')
@@ -145,3 +144,19 @@ if st.button('Get Membership Package Distribution'):
     # Membership change in wash package distribution over time
     fig = report_functions.monthly_package_distribution_plot(df=df, words=words, col=col, threshold=threshold)
     st.pyplot(fig)
+
+
+if st.button('Generate Report PDF'):
+    internal_page()
+    package_page()
+    pdf_file = save_pdf()
+    
+    with open(pdf_file, "rb") as f:
+        pdf_bytes = f.read()
+    
+    st.download_button(
+        label="Download Report PDF",
+        data=pdf_bytes,
+        file_name=f"Quarterly_Report_Hub_{hub_id}_Site_{site_id}.pdf",
+        mime="application/pdf"
+    )
