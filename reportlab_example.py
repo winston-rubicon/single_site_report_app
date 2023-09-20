@@ -195,6 +195,11 @@ class FooterCanvas(canvas.Canvas):
         self.setStrokeColor(self.lightgrey)
         self.setLineWidth(1)
 
+        if self._pageNumber < 7:
+            self.header_text = "Market Evaluation"
+        elif self._pageNumber < 10:
+            self.header_text = "Index"
+
         # Two types of headers
         if self._pageNumber == 2 or self._pageNumber == 7:
             # Large header, text below logo
@@ -332,10 +337,10 @@ class PDFPSReporte:
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("ROUNDEDCORNERS", [10, 10, 10, 10]),
-                ("TOPPADDING", (0,0), (-1,-1), 15),
-                ("RIGHTPADDING", (0,0), (-1,-1), 15),
-                ("BOTTOMPADDING", (0,0), (-1,-1), 15),
-                ("LEFTPADDING", (0,0), (-1,-1), 15),
+                ("TOPPADDING", (0, 0), (-1, -1), 15),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 15),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 15),
+                ("LEFTPADDING", (0, 0), (-1, -1), 15),
             ]
         )
         self.grey_textbox = ParagraphStyle(
@@ -350,6 +355,7 @@ class PDFPSReporte:
 
         self.firstPage()
         self.two_plot_box_below_page()
+        self.membership_distribution()
 
         # Build
         self.doc = SimpleDocTemplate(path, pagesize=letter)
@@ -364,6 +370,8 @@ class PDFPSReporte:
         plot_name="figs/revenue_per_car.png",
         plot_title="Revenue Per Car",
         box_text="testing",
+        plot_height=3 * inch,
+        plot_width=5 * inch,
     ):
         """
         Create Table flowable with image and textbox side-by-side
@@ -380,7 +388,7 @@ class PDFPSReporte:
         # Create plot title
         # title = Paragraph(plot_title, self.plot_title_style)
         # Create plot
-        plot = Image(plot_name, width=5 * inch, height=3 * inch, mask="auto")
+        plot = Image(plot_name, width=plot_width, height=plot_height, mask="auto")
         # Create text beside plot
         text = Paragraph(xml_text_test, self.grey_textbox)
         # Lists to put in table
@@ -434,6 +442,39 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
         insights = Table([[para]], colWidths=[7 * inch])
         insights.setStyle(self.blue_textbox)
         self.elements.append(insights)
+        self.elements.append(PageBreak())
+
+    def membership_distribution(self):
+        table_title = "Membership Distribution"
+        table_style = TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("TEXTCOLOR", (0, 0), (-1, -1), self.navy),
+                ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 14),
+            ]
+        )
+        plot = Image(
+            "figs/retail_membership_sales.png", width=6.3 * inch, height=1.5 * inch
+        )
+        table = Table([[table_title], [plot]])
+        table.setStyle(table_style)
+        self.elements.append(table)
+
+        self.elements.append(Spacer(1, 10))
+
+        self.img_paragraph_table(
+            plot_name="figs/membership_rpc.png", plot_title="Membership Revenue Per Car"
+        )
+
+        self.elements.append(Spacer(1, 10))
+
+        self.img_paragraph_table(
+            plot_name="figs/retail_rpc.png", plot_title="Retail Revenue Per Car"
+        )
+
+        self.elements.append(Spacer(1, 10))
+
         self.elements.append(PageBreak())
 
 
