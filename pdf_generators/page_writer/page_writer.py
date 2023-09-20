@@ -18,6 +18,9 @@ import glob
 class PageWriter():
 
 	def __init__(self, page_name):
+		# Register custom font
+		pdfmetrics.registerFont(TTFont('AtlasGrotesk', 'branding/fonts/atlas_grotesk_web_regular_regular.ttf'))
+
 		# Would open the page to be open at this point, define the height and width and whatnot.
 		self.page = canvas.Canvas(page_name, pagesize=letter)
 		self.width, self.height = letter
@@ -38,7 +41,6 @@ class PageWriter():
 	# def internal_page():
 	# 	# Can put the code necessary for an internal page
 	# 	# Does it even make sense to do this or does it just make sense to make the class with all of the annoying stuff initialized?
-
 
 	# def package_page():
 	# 	# Is it worth it if this is just going to be made once? Maybe yes just to have it all in one place?
@@ -94,12 +96,3 @@ class PageWriter():
 		# Combine PDFs
 		self.combine_pdfs(sorted(pdf_files), output_pdf)
 		return output_pdf
-
-
-
-
-
-
-
-
-
