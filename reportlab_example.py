@@ -332,7 +332,7 @@ class PDFPSReporte:
             textColor=self.navy,
             alightnment=TA_CENTER,
         )
-        self.blue_textbox = TableStyle(
+        self.rounded_corners = TableStyle(
             [
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -341,8 +341,10 @@ class PDFPSReporte:
                 ("RIGHTPADDING", (0, 0), (-1, -1), 15),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 15),
                 ("LEFTPADDING", (0, 0), (-1, -1), 15),
+                ("BACKGROUND", (0,0), (-1,-1), self.lightgrey)
             ]
         )
+
         self.grey_textbox = ParagraphStyle(
             "grey_textbox",
             fontName="AtlasGrotesk",
@@ -354,8 +356,12 @@ class PDFPSReporte:
         )
 
         self.firstPage()
-        self.two_plot_box_below_page()
-        self.membership_distribution()
+        self.two_plot_box_below_page(plot_names=['figs/car_counts.png', 'figs/rpc.png'],
+                                     plot_titles=['Total Volume', 'Revenue Per Car'])
+        self.membership_vs_retail()
+        self.package_distribution()
+        self.two_plot_box_below_page(plot_names=['figs/churn_rate.png', 'figs/capture_rate.png'],
+                                     plot_titles=['Churn Rate', 'Capture Rate'])
 
         # Build
         self.doc = SimpleDocTemplate(path, pagesize=letter)
@@ -391,11 +397,13 @@ class PDFPSReporte:
         plot = Image(plot_name, width=plot_width, height=plot_height, mask="auto")
         # Create text beside plot
         text = Paragraph(xml_text_test, self.grey_textbox)
+        inner_table = Table([[text]], colWidths=[2 * inch])
+        inner_table.setStyle(self.rounded_corners)
         # Lists to put in table
-        first_row = [plot_title, ""]
-        second_row = [plot, text]
+        first_row = [plot_title,"", inner_table]
+        second_row = [plot, "", ""]
         # Define col widths to allow for Paragraph to fill up space
-        col_widths = [5 * inch, 2 * inch]
+        col_widths = [5 * inch, 20, 2 * inch]
         # Table's formatted as follows: [[flowable, flowable,...],
         #                                [flowable, flowable,...],...]
         table = Table([first_row, second_row], colWidths=col_widths)
@@ -409,12 +417,13 @@ class PDFPSReporte:
                     ("TEXTCOLOR", (0, 0), (-1, -1), self.navy),
                     ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 14),
+                    ("SPAN", (2,0), (2,-1))
                 ]
             )
         )
         self.elements.append(table)
 
-    def two_plot_box_below_page(self, text="Insights"):
+    def two_plot_box_below_page(self, plot_names, plot_titles, text="Insights"):
         test_text = f"""<font face="AtlasGrotesk-Bold" size=14>Insights</font><br/><br/>
         Site 1 volume decreased 16% from the previous month with a year to date average of 8,952
 washes per month. This site's average monthly wash count is approximately 5% less than
@@ -424,9 +433,9 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
 
         self.elements.append(Spacer(1, 10))
         # First plot
-        self.img_paragraph_table()
+        self.img_paragraph_table(plot_name=plot_names[0], plot_title=plot_titles[0])
         self.elements.append(Spacer(1, 10))
-        self.img_paragraph_table()
+        self.img_paragraph_table(plot_name=plot_names[1], plot_title=plot_titles[1])
         self.elements.append(Spacer(1, 30))
         para = Paragraph(
             test_text,
@@ -440,11 +449,11 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
             ),
         )
         insights = Table([[para]], colWidths=[7 * inch])
-        insights.setStyle(self.blue_textbox)
+        insights.setStyle(self.rounded_corners)
         self.elements.append(insights)
         self.elements.append(PageBreak())
 
-    def membership_distribution(self):
+    def membership_vs_retail(self):
         table_title = "Membership Distribution"
         table_style = TableStyle(
             [
@@ -473,10 +482,71 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
             plot_name="figs/retail_rpc.png", plot_title="Retail Revenue Per Car"
         )
 
-        self.elements.append(Spacer(1, 10))
+        self.elements.append(PageBreak())
+
+    def package_distribution(self):
+        retail_packages = Image(
+            "figs/retail_package_distribution.png", width=2.5 * inch, height=3 * inch
+        )
+        membership_packages = Image(
+            "figs/membership_package_distribution.png",
+            width=2.5 * inch,
+            height=3 * inch,
+        )
+
+        package_table = Table(
+            [[retail_packages, "", membership_packages]],
+            colWidths=[2.5 * inch, inch, 2.5 * inch],
+        )
+        self.elements.append(package_table)
+
+        # Creating a table with four rows in first column and one row in second column as an all-encompassing textbox
+        img_height = 2.5 * inch
+        img_width = img_height * (5.0 / 3.0)
+        # TODO: remember to rename this figs to whatever gets put into app
+        membership_packages_vs_time = Image(
+            "figs/active_armsover_time.png", width=img_width, height=img_height
+        )
+        retail_packages_vs_time = Image(
+            "figs/car_countsover_time.png", width=img_width, height=img_height
+        )
+        # Defining a Table with a Paragraph in order to be able to use rounded corners
+        # as well as XML formatting in the text
+        para = Paragraph("Some XML formatted text", self.grey_textbox)
+        inner_table = Table([[para]], colWidths=[2 * inch])
+        inner_table.setStyle(self.rounded_corners)
+        row1 = [
+            "Membership Package Distribution Over Time",
+            "",
+            inner_table,
+        ]  # Has to go in top left of spanned cells
+        row2 = [membership_packages_vs_time, "", ""]
+        row3 = ["Retail Package Distribution Over Time", "", ""]
+        row4 = [retail_packages_vs_time, "", ""]
+
+        table = Table(
+            [row1, row2, row3, row4], colWidths=[img_width, 0.5 * inch, 2 * inch]
+        )
+        table.setStyle(
+            TableStyle(
+                [
+                    ("TEXTCOLOR", (0, 0), (0, -1), self.navy),
+                    ("TEXTCOLOR", (1, 0), (1, -1), self.cobalt),
+                    ("ALIGN", (1, 0), (1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
+                    ("FONTSIZE", (0, 0), (0, -1), 12),
+                    ("SPAN", (2, 0), (2, -1)),
+                ]
+            )
+        )
+
+        self.elements.append(table)
 
         self.elements.append(PageBreak())
 
+    def popular_days_hours(self):
+        pass
 
 if __name__ == "__main__":
     report = PDFPSReporte("psreport.pdf")
