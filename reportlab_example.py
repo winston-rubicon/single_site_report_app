@@ -324,14 +324,7 @@ class PDFPSReporte:
         self.hex_cobalt = self.cobalt.hexval()[2:]
         self.hex_skyblue = self.skyblue.hexval()[2:]
 
-        # Some commonly used Paragraph styles
-        self.plot_title_style = ParagraphStyle(
-            "plot_title",
-            fontName="AtlasGrotesk-Bold",
-            fontSize=14,
-            textColor=self.navy,
-            alightnment=TA_CENTER,
-        )
+        # Some commonly used Table/Paragraph styles
         self.rounded_corners = TableStyle(
             [
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
@@ -341,7 +334,7 @@ class PDFPSReporte:
                 ("RIGHTPADDING", (0, 0), (-1, -1), 15),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 15),
                 ("LEFTPADDING", (0, 0), (-1, -1), 15),
-                ("BACKGROUND", (0,0), (-1,-1), self.lightgrey)
+                ("BACKGROUND", (0, 0), (-1, -1), self.lightgrey),
             ]
         )
 
@@ -355,13 +348,20 @@ class PDFPSReporte:
             borderPadding=(6, 2, 6, 2),
         )
 
+        # Making the PDF
         self.firstPage()
-        self.two_plot_box_below_page(plot_names=['figs/car_counts.png', 'figs/rpc.png'],
-                                     plot_titles=['Total Volume', 'Revenue Per Car'])
+        self.two_plot_box_below_page(
+            plot_names=["figs/car_counts.png", "figs/rpc.png"],
+            plot_titles=["Total Volume", "Revenue Per Car"],
+        )
         self.membership_vs_retail()
         self.package_distribution()
-        self.two_plot_box_below_page(plot_names=['figs/churn_rate.png', 'figs/capture_rate.png'],
-                                     plot_titles=['Churn Rate', 'Capture Rate'])
+        self.two_plot_box_below_page(
+            plot_names=["figs/churn_rate.png", "figs/capture_rate.png"],
+            plot_titles=["Churn Rate", "Capture Rate"],
+        )
+        self.popular_days_hours()
+        self.wash_index()
 
         # Build
         self.doc = SimpleDocTemplate(path, pagesize=letter)
@@ -377,7 +377,7 @@ class PDFPSReporte:
         plot_title="Revenue Per Car",
         box_text="testing",
         plot_height=3 * inch,
-        plot_width=5 * inch,
+        aspect_ratio=5./3.,
     ):
         """
         Create Table flowable with image and textbox side-by-side
@@ -391,16 +391,15 @@ class PDFPSReporte:
             Site 1 sales are weighted heavily on retail over membership. In September, 
             ticket sales were 9% greater than regional retail sales, and 15% greater nationally. 
             Site 1 membership accounts are 17% less than regional memberships, and 10% less than national.</font>"""
-        # Create plot title
-        # title = Paragraph(plot_title, self.plot_title_style)
         # Create plot
+        plot_width=plot_height*aspect_ratio
         plot = Image(plot_name, width=plot_width, height=plot_height, mask="auto")
         # Create text beside plot
         text = Paragraph(xml_text_test, self.grey_textbox)
         inner_table = Table([[text]], colWidths=[2 * inch])
         inner_table.setStyle(self.rounded_corners)
         # Lists to put in table
-        first_row = [plot_title,"", inner_table]
+        first_row = [plot_title, "", inner_table]
         second_row = [plot, "", ""]
         # Define col widths to allow for Paragraph to fill up space
         col_widths = [5 * inch, 20, 2 * inch]
@@ -417,7 +416,7 @@ class PDFPSReporte:
                     ("TEXTCOLOR", (0, 0), (-1, -1), self.navy),
                     ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 14),
-                    ("SPAN", (2,0), (2,-1))
+                    ("SPAN", (2, 0), (2, -1)),
                 ]
             )
         )
@@ -546,7 +545,30 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
         self.elements.append(PageBreak())
 
     def popular_days_hours(self):
-        pass
+        self.elements.append(Spacer(1,.75*inch))
+        self.img_paragraph_table(plot_name='figs/washes_per_day.png', plot_title='Washes Per Day')
+        self.elements.append(Spacer(1,inch))
+        self.img_paragraph_table(plot_name='figs/washes_per_hour.png', plot_title='Washes Per Hour')
+        self.elements.append(PageBreak())
+
+    def wash_index(self):
+        # Simple table with index score on left, text with numbers on right
+        index_img = Image('figs/wash_score.png', width=3*inch, height=2*inch)
+        text = f'''<font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Projected Wash Count</font><br/>
+<font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">8576</font><br/><br/>
+<font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Actual Wash Count</font><br/>
+<font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">8267</font>'''
+        para = Paragraph(text, ParagraphStyle('space_after', leading=18))
+        table=Table([[index_img, "", para]], colWidths=[3*inch, .5*inch, 3*inch])
+        table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+        ]))
+        self.elements.append(table)
+        self.elements.append(Spacer(1,10))
+        self.img_paragraph_table(plot_name='figs/optimal_weather_days.png', plot_title='Optimal Car Wash Days', plot_height=2.75*inch)
+        self.elements.append(Spacer(1,10))
+        self.img_paragraph_table(plot_name='figs/washes_per_optimal_day.png', plot_title='Washes Per Optimal Car Wash Day')
+        self.elements.append(PageBreak())
 
 if __name__ == "__main__":
     report = PDFPSReporte("psreport.pdf")
