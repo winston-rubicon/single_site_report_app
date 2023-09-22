@@ -300,7 +300,8 @@ def create_footer_canvas_wrapper(wash_name, wash_address):
 
 
 class PDFPSReporte:
-    def __init__(self, path, wash_name="car wash", wash_address="elm st"):
+    def __init__(self, plot_dict, path='psreport.pdf', wash_name="car wash", wash_address="elm st"):
+        self.plot_dict = plot_dict
         self.path = path
         self.styleSheet = getSampleStyleSheet()
         self.elements = []
@@ -351,13 +352,13 @@ class PDFPSReporte:
         # Making the PDF
         self.firstPage()
         self.two_plot_box_below_page(
-            plot_names=["figs/car_counts.png", "figs/rpc.png"],
+            plots=[self.plot_dict['total_wash_counts'], self.plot_dict['revenue_per_car']],
             plot_titles=["Total Volume", "Revenue Per Car"],
         )
         self.membership_vs_retail()
         self.package_distribution()
         self.two_plot_box_below_page(
-            plot_names=["figs/churn_rate.png", "figs/capture_rate.png"],
+            plots=[plot_dict['churn_rate'], plot_dict['capture_rate']],
             plot_titles=["Churn Rate", "Capture Rate"],
         )
         self.popular_days_hours()
@@ -373,7 +374,7 @@ class PDFPSReporte:
 
     def img_paragraph_table(
         self,
-        plot_name="figs/revenue_per_car.png",
+        plot="figs/revenue_per_car.png",
         plot_title="Revenue Per Car",
         box_text="testing",
         plot_height=3 * inch,
@@ -393,7 +394,7 @@ class PDFPSReporte:
             Site 1 membership accounts are 17% less than regional memberships, and 10% less than national.</font>"""
         # Create plot
         plot_width=plot_height*aspect_ratio
-        plot = Image(plot_name, width=plot_width, height=plot_height, mask="auto")
+        plot = Image(plot, width=plot_width, height=plot_height, mask="auto")
         # Create text beside plot
         text = Paragraph(xml_text_test, self.grey_textbox)
         inner_table = Table([[text]], colWidths=[2 * inch])
@@ -422,7 +423,7 @@ class PDFPSReporte:
         )
         self.elements.append(table)
 
-    def two_plot_box_below_page(self, plot_names, plot_titles, text="Insights"):
+    def two_plot_box_below_page(self, plots, plot_titles, text="Insights"):
         test_text = f"""<font face="AtlasGrotesk-Bold" size=14>Insights</font><br/><br/>
         Site 1 volume decreased 16% from the previous month with a year to date average of 8,952
 washes per month. This site's average monthly wash count is approximately 5% less than
@@ -432,9 +433,9 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
 
         self.elements.append(Spacer(1, 10))
         # First plot
-        self.img_paragraph_table(plot_name=plot_names[0], plot_title=plot_titles[0])
+        self.img_paragraph_table(plot=plots[0], plot_title=plot_titles[0])
         self.elements.append(Spacer(1, 10))
-        self.img_paragraph_table(plot_name=plot_names[1], plot_title=plot_titles[1])
+        self.img_paragraph_table(plot=plots[1], plot_title=plot_titles[1])
         self.elements.append(Spacer(1, 30))
         para = Paragraph(
             test_text,
@@ -463,7 +464,7 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
             ]
         )
         plot = Image(
-            "figs/retail_membership_sales.png", width=6.3 * inch, height=1.5 * inch
+            self.plot_dict['retail_membership_distribution'], width=6.3 * inch, height=1.5 * inch
         )
         table = Table([[table_title], [plot]])
         table.setStyle(table_style)
@@ -472,23 +473,23 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
         self.elements.append(Spacer(1, 10))
 
         self.img_paragraph_table(
-            plot_name="figs/membership_rpc.png", plot_title="Membership Revenue Per Car"
+            plot=self.plot_dict["membership_rpc"], plot_title="Membership Revenue Per Car"
         )
 
         self.elements.append(Spacer(1, 10))
 
         self.img_paragraph_table(
-            plot_name="figs/retail_rpc.png", plot_title="Retail Revenue Per Car"
+            plot=self.plot_dict["retail_rpc"], plot_title="Retail Revenue Per Car"
         )
 
         self.elements.append(PageBreak())
 
     def package_distribution(self):
         retail_packages = Image(
-            "figs/retail_package_distribution.png", width=2.5 * inch, height=3 * inch
+            self.plot_dict["retail_package_distribution"], width=2.5 * inch, height=3 * inch
         )
         membership_packages = Image(
-            "figs/membership_package_distribution.png",
+            self.plot_dict["membership_package_distribution"],
             width=2.5 * inch,
             height=3 * inch,
         )
@@ -504,10 +505,10 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
         img_width = img_height * (5.0 / 3.0)
         # TODO: remember to rename this figs to whatever gets put into app
         membership_packages_vs_time = Image(
-            "figs/active_armsover_time.png", width=img_width, height=img_height
+            self.plot_dict["membership_monthly_package_distribution"], width=img_width, height=img_height
         )
         retail_packages_vs_time = Image(
-            "figs/car_countsover_time.png", width=img_width, height=img_height
+            self.plot_dict["retail_monthly_package_distribution"], width=img_width, height=img_height
         )
         # Defining a Table with a Paragraph in order to be able to use rounded corners
         # as well as XML formatting in the text
@@ -546,13 +547,14 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
 
     def popular_days_hours(self):
         self.elements.append(Spacer(1,.75*inch))
-        self.img_paragraph_table(plot_name='figs/washes_per_day.png', plot_title='Washes Per Day')
+        self.img_paragraph_table(plot=self.plot_dict['popular_days'], plot_title='Washes Per Day')
         self.elements.append(Spacer(1,inch))
-        self.img_paragraph_table(plot_name='figs/washes_per_hour.png', plot_title='Washes Per Hour')
+        self.img_paragraph_table(plot=self.plot_dict['popular_hours'], plot_title='Washes Per Hour')
         self.elements.append(PageBreak())
 
     def wash_index(self):
         # Simple table with index score on left, text with numbers on right
+        # TODO: need to make wash score plot in app
         index_img = Image('figs/wash_score.png', width=3*inch, height=2*inch)
         text = f'''<font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Projected Wash Count</font><br/>
 <font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">8576</font><br/><br/>
@@ -565,10 +567,7 @@ the regional average and 1% greater than the national average. Site 1 revenue pe
         ]))
         self.elements.append(table)
         self.elements.append(Spacer(1,10))
-        self.img_paragraph_table(plot_name='figs/optimal_weather_days.png', plot_title='Optimal Car Wash Days', plot_height=2.75*inch)
+        self.img_paragraph_table(plot=self.plot_dict['optimal_weather_days'], plot_title='Optimal Car Wash Days', plot_height=2.75*inch)
         self.elements.append(Spacer(1,10))
-        self.img_paragraph_table(plot_name='figs/washes_per_optimal_day.png', plot_title='Washes Per Optimal Car Wash Day')
+        self.img_paragraph_table(plot=self.plot_dict['washes_per_optimal_day'], plot_title='Washes Per Optimal Car Wash Day')
         self.elements.append(PageBreak())
-
-if __name__ == "__main__":
-    report = PDFPSReporte("psreport.pdf")

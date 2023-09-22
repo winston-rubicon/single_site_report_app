@@ -4,24 +4,32 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from databricks import sql
 import os
+import requests
+import pickle
+import json
+import base64
 
 # Defining dictionary for package_rpt codes, etc. associated with a hub_id
+# TODO: build this in query
 hub_dict = {
-        10007: {
-                'package_rpt': (103958, 1000002),
-                'bls_division': 'East North Central',
-                'state': 'Ohio'
-                },
+    10007: {
+        "package_rpt": (103958, 1000002),
+        "bls_division": "East North Central",
+        "state": "Ohio",
+    },
 }
 
 # Your start and end year, month
 # TODO: How to implement these programmatically? User input? Current date and do previous quarter?
 start_year, start_month = 2022, 4
 end_year, end_month = 2023, 6
-query_year = start_year-1
+query_year = start_year - 1
 
-# Current quarter
+# Current quarter (see above TODO)
 quarter = 2
+
+item_category_dict = {10001: 102, 10003: 106, 10005: 102, 10007: 103958}
+
 
 def gsr_report_query(spark, hub_id, site_id):
     ###----- Hub Membership Query to pull all "GSR Report" section values
@@ -126,15 +134,15 @@ def gsr_report_query(spark, hub_id, site_id):
                 plan.NAME
         """
 
-
     # Need to use the cursor method to get data from the cluster
-    # This creates an 'arrow table', so convert that to a spark 
+    # This creates an 'arrow table', so convert that to a spark
     # DataFrame to be able to create a temp view to query
 
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
-                 http_path=os.getenv("DATABRICKS_HTTP_PATH"),
-                 access_token=os.getenv("DATABRICKS_TOKEN")) as connection:
-
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
         with connection.cursor() as cursor:
             cursor.execute(query1)
             data = cursor.fetchall_arrow()
@@ -143,44 +151,57 @@ def gsr_report_query(spark, hub_id, site_id):
             cursor.close()
         connection.close()
 
-    pivot_report_names = ['ARM Headers', 
-                          'ARM Plans Recharged',
-                          'ARM Plan Extra Rdmd', 
-                          'ARM Plans Redeemed',
-                          'ARM Plans Sold',
-                          'ARM Plans Terminated',
-                          'Cash',
-                          'Credit Card',
-                          'Free Washes Redeemed',
-                          'House Accounts',
-                          'Paidouts',
-                          'Prepaid Redeemed',
-                          'Prepaid Sold',
-                          'Wash Extras',
-                          'Wash LPM Discounts',
-                          'Wash Misc.',
-                          'Wash Packages',
-                          'Express Basics',
-                          'Express Pkgs',
-                        #   'Full Serve Basics',
-                        #   'Full Serve Pkgs'
-                          ] 
+    pivot_report_names = [
+        "ARM Headers",
+        "ARM Plans Recharged",
+        "ARM Plan Extra Rdmd",
+        "ARM Plans Redeemed",
+        "ARM Plans Sold",
+        "ARM Plans Terminated",
+        "Cash",
+        "Credit Card",
+        "Free Washes Redeemed",
+        "House Accounts",
+        "Paidouts",
+        "Prepaid Redeemed",
+        "Prepaid Sold",
+        "Wash Extras",
+        "Wash LPM Discounts",
+        "Wash Misc.",
+        "Wash Packages",
+        "Express Basics",
+        "Express Pkgs",
+        #   'Full Serve Basics',
+        #   'Full Serve Pkgs'
+    ]
 
     # Filter the DataFrame based on the report_name
-    categories_df = categories_df.filter(F.col('report_name').isin(pivot_report_names))
+    categories_df = categories_df.filter(F.col("report_name").isin(pivot_report_names))
     # Replace spaces and special characters in the report_name column
-    categories_df = categories_df.withColumn("report_name", F.regexp_replace(F.col("report_name"), "[^a-zA-Z0-9]", "_"))
+    categories_df = categories_df.withColumn(
+        "report_name", F.regexp_replace(F.col("report_name"), "[^a-zA-Z0-9]", "_")
+    )
     # Create an array with the two columns we want to pivot
-    categories_df = categories_df.withColumn("values", F.struct(F.col("total_amount"), F.col("total_count")))
+    categories_df = categories_df.withColumn(
+        "values", F.struct(F.col("total_amount"), F.col("total_count"))
+    )
     # Pivot the DataFrame
-    pivot_df = categories_df.groupBy("hub_id", "site", "month", "year").pivot("report_name").agg(F.first("values"))
+    pivot_df = (
+        categories_df.groupBy("hub_id", "site", "month", "year")
+        .pivot("report_name")
+        .agg(F.first("values"))
+    )
     # Split the struct back into two separate columns for each report_name
     for column in pivot_df.columns:
         if column not in ["hub_id", "site", "month", "year"]:
             new_column = column.replace(" ", "_").lower() + "_amount"
             new_count_column = column.replace(" ", "_").lower() + "_count"
-            pivot_df = pivot_df.withColumn(new_column, F.col(column).getItem("total_amount"))
-            pivot_df = pivot_df.withColumn(new_count_column, F.col(column).getItem("total_count"))
+            pivot_df = pivot_df.withColumn(
+                new_column, F.col(column).getItem("total_amount")
+            )
+            pivot_df = pivot_df.withColumn(
+                new_count_column, F.col(column).getItem("total_count")
+            )
             pivot_df = pivot_df.drop(column)
     # Rename the columns to lowercase
     categories_df = pivot_df.toDF(*[col.lower() for col in pivot_df.columns])
@@ -189,10 +210,11 @@ def gsr_report_query(spark, hub_id, site_id):
 
     # Getting membership values based on 'SalePasses' Status code
     # Used to break down membership information by package type
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
-                 http_path=os.getenv("DATABRICKS_HTTP_PATH"),
-                 access_token=os.getenv("DATABRICKS_TOKEN")) as connection:
-
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
         with connection.cursor() as cursor:
             cursor.execute(query2)
             data = cursor.fetchall_arrow()
@@ -299,25 +321,26 @@ def gsr_report_query(spark, hub_id, site_id):
 
     df = rdf.toPandas()
     # Convert 'year' and 'month' to integer
-    df['year'] = df['year'].astype(int)
-    df['month'] = df['month'].astype(int)
+    df["year"] = df["year"].astype(int)
+    df["month"] = df["month"].astype(int)
     # Convert the 'year' and 'month' fields to datetime
-    df['date'] = pd.to_datetime(df[['year', 'month']].assign(day=1))
+    df["date"] = pd.to_datetime(df[["year", "month"]].assign(day=1))
     # Filter to only keep dates up to current quarter
-    df = df[df['date'] <= pd.to_datetime(f'{end_year}-{end_month}-01')]
+    df = df[df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01")]
     # Sort the filtered dataframe
-    full_df = df.sort_values(['hub_site','date'])
+    full_df = df.sort_values(["hub_site", "date"])
     # Include column for quarter
-    full_df['quarter'] = full_df['date'].dt.quarter
-    
+    full_df["quarter"] = full_df["date"].dt.quarter
+
     return full_df
 
-def retail_package_query(hub_id, site_id):
+
+def retail_package_query(hub_id, site_id=None):
     # Getting retail package distribution
     arms_rdm_rpt = 103962  # ARM Plans Redeemed
 
     # FOR SGT CLEAN ONLY need to include another package report ID to get proper distribution.
-    # This necessitates a change in the WHERE condition in the tot_table selection below. 
+    # This necessitates a change in the WHERE condition in the tot_table selection below.
     # For other sites change the IN to an =, and get rid of the AND altogether.
 
     query3 = f"""
@@ -395,10 +418,11 @@ def retail_package_query(hub_id, site_id):
             tot_table.month
         """
 
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
-             http_path=os.getenv("DATABRICKS_HTTP_PATH"),
-             access_token=os.getenv("DATABRICKS_TOKEN")) as connection:
-
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
         with connection.cursor() as cursor:
             cursor.execute(query3)
             data = cursor.fetchall_arrow()
@@ -406,28 +430,31 @@ def retail_package_query(hub_id, site_id):
             cursor.close()
         connection.close()
 
-    df = df.dropna(subset=['year','month'])
+    df = df.dropna(subset=["year", "month"])
 
     # Convert 'year' and 'month' to integer
-    df['year'] = df['year'].astype(int)
-    df['month'] = df['month'].astype(int)
+    df["year"] = df["year"].astype(int)
+    df["month"] = df["month"].astype(int)
 
     # Convert the 'year' and 'month' fields to datetime
-    df['date'] = pd.to_datetime(df[['year', 'month']].assign(day=1))
+    df["date"] = pd.to_datetime(df[["year", "month"]].assign(day=1))
     # Filter for desired dates
     # Use start_year - 1 for YoY calculations
     full_package_df = df[
-        ((df['date'] >= pd.to_datetime(f'{start_year-1}-{start_month}-01')) & 
-        (df['date'] <= pd.to_datetime(f'{end_year}-{end_month}-01')))
+        (
+            (df["date"] >= pd.to_datetime(f"{start_year-1}-{start_month}-01"))
+            & (df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
+        )
     ]
     # Sort the filtered dataframe
-    full_package_df = full_package_df.sort_values('date')
+    full_package_df = full_package_df.sort_values("date")
     # Include column for quarter
-    full_package_df['quarter'] = full_package_df['date'].dt.quarter
+    full_package_df["quarter"] = full_package_df["date"].dt.quarter
 
     return full_package_df
 
-def membership_package_query(hub_id, site_id):
+
+def membership_package_query(hub_id, site_id=None):
     # Membership Sold Distribution
     query4 = f"""
             SELECT *,
@@ -436,10 +463,11 @@ def membership_package_query(hub_id, site_id):
             WHERE hub_id = {hub_id}
         """
 
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
-             http_path=os.getenv("DATABRICKS_HTTP_PATH"),
-             access_token=os.getenv("DATABRICKS_TOKEN")) as connection:
-
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
         with connection.cursor() as cursor:
             cursor.execute(query4)
             data = cursor.fetchall_arrow()
@@ -450,14 +478,228 @@ def membership_package_query(hub_id, site_id):
     # Drop nulls
     df.dropna(inplace=True)
     # Convert 'year' and 'month' to integer
-    df['year'] = df['year'].astype(int)
-    df['month'] = df['month'].astype(int)
+    df["year"] = df["year"].astype(int)
+    df["month"] = df["month"].astype(int)
     # Convert the 'year' and 'month' fields to datetime
-    df['date'] = pd.to_datetime(df[['year', 'month']].assign(day=1))
+    df["date"] = pd.to_datetime(df[["year", "month"]].assign(day=1))
     # Filter to only keep dates up to current quarter
-    df = df[(df['date'] >= pd.to_datetime(f'{query_year}-{start_month}-01')) &
-        (df['date'] <= pd.to_datetime(f'{end_year}-{end_month}-01'))]
+    df = df[
+        (df["date"] >= pd.to_datetime(f"{query_year}-{start_month}-01"))
+        & (df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
+    ]
     # Include quarter
-    df['quarter'] = df['date'].dt.quarter
+    df["quarter"] = df["date"].dt.quarter
 
     return df
+
+
+def popular_days_query(hub_id, site_id=None):
+    query = f""" 
+                SELECT
+                    {hub_id} as hub_id,
+                    hub_sites.site_id,
+                    sale.SITE AS hub_site,
+                    YEAR(sale.LOGDATE) AS year,
+                    MONTH(sale.LOGDATE) AS month,
+                    DATE_FORMAT(sale.created, 'EEEE') AS day_of_week,
+                    COUNT(DATE_FORMAT(sale.created, 'EEEE')) AS day_of_week_counts
+
+                FROM ncs_index_dev.hub_{hub_id}.sale AS sale
+                    INNER JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems 
+                        ON sale.SITE = saleitems.SITE 
+                        AND sale.OBJID = saleitems.SALEID
+
+                    INNER JOIN ncs_index_dev.hub_{hub_id}.item 
+                        ON saleitems.ITEM = item.OBJID
+                    INNER JOIN ncs_index_dev.hub_{hub_id}.itemrptcategory AS item_category 
+                        ON item.REPORTCATEGORY = item_category.OBJID
+                    INNER JOIN ncs_index_dev.data_hub.sites AS hub_sites
+                        on sale.SITE = hub_sites.hub_site
+                        AND {hub_id} = hub_sites.hub_id
+                WHERE item_category.OBJID = {item_category_dict[hub_id]}
+                    AND hub_id = {hub_id}
+            
+                GROUP BY
+                    hub_sites.site_id,
+                    sale.SITE,
+                    hub_id,
+                    year,
+                    month,
+                    day_of_week
+
+                ORDER BY
+                    hub_id,
+                    hub_site,
+                    year,
+                    month
+            
+        """
+
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            data = cursor.fetchall_arrow()
+            days_df = data.to_pandas()
+            cursor.close()
+        connection.close()
+
+    # drop nulls
+    days_df.dropna(inplace=True)
+
+    # Convert 'year' and 'month' to integer
+    days_df["year"] = days_df["year"].astype(int)
+    days_df["month"] = days_df["month"].astype(int)
+
+    # Convert the 'year' and 'month' fields to datetime
+    days_df["date"] = pd.to_datetime(days_df[["year", "month"]].assign(day=1))
+
+    # Filter to only keep dates up to current quarter
+    days_df = days_df[
+        (days_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
+        & (days_df["date"] >= pd.to_datetime(f"{query_year}-{start_month}-01"))
+    ]
+
+    # Sort the filtered dataframe
+    days_df = days_df.sort_values(["hub_site", "date"])
+
+    # Include column for quarter
+    days_df["quarter"] = days_df["date"].dt.quarter
+    return days_df
+
+
+def popular_hours_query(hub_id, site_id=None):
+    query = f""" 
+                SELECT
+                    {hub_id} as hub_id,
+                    hub_sites.site_id,
+                    sale.SITE AS hub_site,
+                    YEAR(sale.LOGDATE) AS year,
+                    MONTH(sale.LOGDATE) AS month,
+                    EXTRACT(HOUR FROM sale.created) AS hour,
+                    COUNT(EXTRACT(HOUR FROM sale.created)) AS hour_counts
+
+                FROM ncs_index_dev.hub_{hub_id}.sale AS sale
+                    INNER JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems 
+                        ON sale.SITE = saleitems.SITE 
+                        AND sale.OBJID = saleitems.SALEID
+
+                    INNER JOIN ncs_index_dev.hub_{hub_id}.item 
+                        ON saleitems.ITEM = item.OBJID
+                    INNER JOIN ncs_index_dev.hub_{hub_id}.itemrptcategory AS item_category 
+                        ON item.REPORTCATEGORY = item_category.OBJID
+                    INNER JOIN ncs_index_dev.data_hub.sites AS hub_sites
+                        on sale.SITE = hub_sites.hub_site
+                        AND {hub_id} = hub_sites.hub_id
+                WHERE item_category.OBJID = {item_category_dict[hub_id]}
+            
+                GROUP BY
+                    hub_sites.site_id,
+                    sale.SITE,
+                    hub_id,
+                    year,
+                    month,
+                    hour
+
+                ORDER BY
+                    hub_id,
+                    hub_site,
+                    year,
+                    month
+            
+        """
+
+    # Do the query
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            data = cursor.fetchall_arrow()
+            hours_df = data.to_pandas()
+            cursor.close()
+        connection.close()
+
+    # drop nulls
+    hours_df.dropna(inplace=True)
+    # Convert 'year' and 'month' to integer
+    hours_df["year"] = hours_df["year"].astype(int)
+    hours_df["month"] = hours_df["month"].astype(int)
+    # Convert the 'year' and 'month' fields to datetime
+    hours_df["date"] = pd.to_datetime(hours_df[["year", "month"]].assign(day=1))
+    # Filter to only keep dates up to current quarter
+    hours_df = hours_df[
+        (hours_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
+        & (hours_df["date"] >= pd.to_datetime(f"{query_year}-{start_month}-01"))
+    ]
+    # Sort the filtered dataframe
+    hours_df = hours_df.sort_values(["hub_site", "date"])
+    # Include column for quarter
+    hours_df["quarter"] = hours_df["date"].dt.quarter
+    return hours_df
+
+
+def optimal_weather_days_query(hub_id, site_id=None):
+    # Query the table to retrieve the data for the specific hub_id and range of month and year
+    query = f"SELECT * FROM ncs_index_dev.reports.hub_q1_2023_v2 WHERE hub_id = {hub_id} AND ((year = {start_year} AND month >= {start_month}) OR (year = {end_year} AND month <= {end_month}))"
+
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            data = cursor.fetchall_arrow()
+            weather_df = data.to_pandas()
+            cursor.close()
+        connection.close()
+
+    # Convert the 'year' and 'month' fields to datetime
+    weather_df["date"] = pd.to_datetime(weather_df[["year", "month"]].assign(day=1))
+
+    return weather_df
+
+
+def wash_index_table_query():
+    # Start spark session
+    spark = SparkSession.builder.appName("Read CSV from DBFS").getOrCreate()
+
+    # Define table path
+    table_path = "dbfs:/FileStore/tables/wash_index_test_set.csv"
+    # Read the CSV file into a Spark DataFrame
+    data = spark.read.csv(table_path, header=True, inferSchema=True)
+
+    # Define model path
+    model_path = "/dbfs/FileStore/models/v1_models/wash_index_q1_2023_v1_2.pkl"
+
+    # Get environment parameters containing url and access token for databricks access
+    http_path = os.getenv("DATABRICKS_HTTP_PATH")
+    access_token = os.getenv("DATABRICKS_TOKEN")
+
+    # Make the API request to read data
+    headers = {"Authorization": access_token}
+    params = {
+        "path": model_path,
+        "offset": 0,
+        "length": 10000,
+    }  # You may need to adjust the 'length' parameter
+    response = requests.get(http_path, headers=headers, params=params)
+
+    # Parse the JSON response to get the data
+    json_data = json.loads(response.text)
+    file_data = json_data.get("data", "")
+
+    # Convert the base64 encoded data to bytes
+    file_bytes = base64.b64decode(file_data)
+
+    # Load data using pickle
+    model = pickle.loads(file_bytes)
+
+    # Now, 'data' contains the deserialized object
+    st.write(model)
