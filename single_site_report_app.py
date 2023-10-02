@@ -4,8 +4,6 @@ import os
 from report_functions import report_functions, sql_queries
 import reportlab_example as rl
 
-# from pdf_generators.pdf_generator import internal_page, package_page
-# from pdf_generators.pdf_compiler import save_pdf
 import pandas as pd
 from pyspark.sql import SparkSession
 from io import BytesIO
@@ -83,7 +81,7 @@ if access_token:
     ylabel = "Number of Washes"
     # Call function to plot data
     fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
-    st.pyplot(fig)
+    # st.pyplot(fig)
     wash_counts_fig = save_plot(fig)
     plots_for_pdf["total_wash_counts"] = wash_counts_fig
 
@@ -93,7 +91,7 @@ if access_token:
     ylabel = "Revenue Per Car ($)"
     # plot
     fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
-    st.pyplot(fig)
+    # st.pyplot(fig)
     rpc_fig = save_plot(fig)
     plots_for_pdf["revenue_per_car"] = rpc_fig
 
@@ -149,43 +147,45 @@ if access_token:
     fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
     capture_plot = save_plot(fig)
     plots_for_pdf["capture_rate"] = capture_plot
-    st.pyplot(fig)
+    # st.pyplot(fig)
 
     ### Popular Days
     days_df = sql_queries.popular_days_query(hub_id)
-    fig = report_functions.popular_days(days_df)
+    days_df, fig = report_functions.popular_days(days_df)
     popular_days_plot = save_plot(fig)
     plots_for_pdf["popular_days"] = popular_days_plot
-    st.pyplot(fig)
+    # st.pyplot(fig)
 
     ### Popular Hours
     hours_df = sql_queries.popular_hours_query(hub_id)
     fig = report_functions.popular_hours(hours_df)
     popular_hours_plot = save_plot(fig)
     plots_for_pdf["popular_hours"] = popular_hours_plot
-    st.pyplot(fig)
+    # st.pyplot(fig)
 
     ### Optimal Weather Days
     weather_df = sql_queries.optimal_weather_days_query(hub_id)
-    fig = report_functions.optimal_weather_days(weather_df)
+    weather_grouped_df, fig = report_functions.optimal_weather_days(weather_df)
+    weather_grouped_df['quarter'] = weather_grouped_df.index.quarter
     optimal_weather_days_plot = save_plot(fig)
     plots_for_pdf["optimal_weather_days"] = optimal_weather_days_plot
-    st.pyplot(fig)
+    # st.pyplot(fig)
 
     ### Washes Per Optimal Weather day
-    fig = report_functions.washes_per_optimal_day(weather_df)
+    weather_wash_df, fig = report_functions.washes_per_optimal_day(weather_df)
     washes_per_optimal_day_plot = save_plot(fig)
     plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
-    st.pyplot(fig)
+    # st.pyplot(fig)
 
-# if st.button("Get Retail Package Distribution"):
+    # if st.button("Get Retail Package Distribution"):
     # Query for package breakdown
-    full_package_df = sql_queries.retail_package_query(hub_id, site_id)
+    retail_df = sql_queries.retail_package_query(hub_id, site_id)
     # Copy df to avoid issues in overwriting it, make sure to only get desired dates
-    package_df = full_package_df[
-        (full_package_df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
-        & (full_package_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
+    package_df = retail_df[
+        (retail_df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
+        & (retail_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
     ]
+
     # List of words to filter on
     # TODO: This needs to either be in the hub dictionary or determiend programmatically (or both)
     words = ["bronze", "silver", "gold", "platinum"]
@@ -196,10 +196,10 @@ if access_token:
     # Define title of plot
     title = "Retail Package\nDistribution"
     # Plot
-    fig = report_functions.package_distribution_plot(
+    retail_df, fig = report_functions.package_distribution_plot(
         df=package_df, words=words, col=col, title=title
     )
-    st.pyplot(fig)
+    # st.pyplot(fig)
     retail_package_plot = save_plot(fig)
     plots_for_pdf["retail_package_distribution"] = retail_package_plot
     # qoq_df = qoq_package(df=df,col=col)
@@ -207,19 +207,19 @@ if access_token:
     fig = report_functions.monthly_package_distribution_plot(
         df=package_df, words=words, col=col
     )
-    st.pyplot(fig)
+    # st.pyplot(fig)
     retail_monthly_package_plot = save_plot(fig)
     plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_plot
 
-
-# if st.button("Get Membership Package Distribution"):
+    # if st.button("Get Membership Package Distribution"):
     # Query to get membership package breakdown
-    df = sql_queries.membership_package_query(hub_id, site_id)
+    mem_df = sql_queries.membership_package_query(hub_id, site_id)
     # Copy df to avoid issues in overwriting it, make sure to only get desired dates
-    package_df = df[
-        (df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
-        & (df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
+    package_df = mem_df[
+        (mem_df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
+        & (mem_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
     ]
+
     # List of words to filter on
     # TODO: This needs to either be in the hub dictionary or determiend programmatically (or both)
     words = ["bronze", "silver", "gold", "platinum"]
@@ -230,10 +230,10 @@ if access_token:
     # Column of interest
     col = "active_arms"
     # Plot
-    fig = report_functions.package_distribution_plot(
+    mem_df, fig = report_functions.package_distribution_plot(
         df=package_df, words=words, col=col, title=title, threshold=threshold
     )
-    st.pyplot(fig)
+    # st.pyplot(fig)
     membership_package_plot = save_plot(fig)
     plots_for_pdf["membership_package_distribution"] = membership_package_plot
     # qoq_df = qoq_package(df=df,col=col,threshold=threshold)
@@ -241,7 +241,7 @@ if access_token:
     fig = report_functions.monthly_package_distribution_plot(
         df=package_df, words=words, col=col, threshold=threshold
     )
-    st.pyplot(fig)
+    # st.pyplot(fig)
     membership_monthly_package_plot = save_plot(fig)
     plots_for_pdf[
         "membership_monthly_package_distribution"
@@ -249,18 +249,17 @@ if access_token:
 
 
 if st.button("Generate Report PDF"):
-    # internal_page()
-    # package_page()
-    # pdf_file = save_pdf()
-    # with open(pdf_file, "rb") as f:
-    #     pdf_bytes = f.read()
-    # st.download_button(
-    #     label="Download Report PDF",
-    #     data=pdf_bytes,
-    #     file_name=f"Quarterly_Report_Hub_{hub_id}_Site_{site_id}.pdf",
-    #     mime="application/pdf",
-    # )
 
-    rl.PDFPSReporte(plots_for_pdf)
-
-    pass
+    rl.PDFPSReporte(
+        plot_dict=plots_for_pdf,
+        full_df=full_df,
+        mem_df=mem_df,
+        retail_df=retail_df,
+        days_df=days_df,
+        hours_df=hours_df,
+        weather_grouped_df=weather_grouped_df,
+        weather_wash_df=weather_wash_df,
+        site_id=site_id,
+        current_year=end_year,
+        quarter=quarter,
+    )

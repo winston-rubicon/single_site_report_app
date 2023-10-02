@@ -449,6 +449,7 @@ def retail_package_query(hub_id, site_id=None):
     # Sort the filtered dataframe
     full_package_df = full_package_df.sort_values("date")
     # Include column for quarter
+
     full_package_df["quarter"] = full_package_df["date"].dt.quarter
 
     return full_package_df
@@ -702,4 +703,4 @@ def wash_index_table_query():
     model = pickle.loads(file_bytes)
 
     # Now, 'data' contains the deserialized object
-    st.write(model)
+    # st.write(model)

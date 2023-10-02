@@ -156,7 +156,7 @@ def bar_plot(df, col=None, ylabel=None):
 
     # Generate bar plot
     ax = grouped_data[["retail_counts", "arms_redeemed"]].plot(
-        kind="bar", figsize=(8, 3), width=0.8, color=["#0b75e1", "#003264"]
+        kind="bar", figsize=(8, 4), width=0.8, color=["#0b75e1", "#003264"]
     )
 
     # ax.set_title('Retail & Membership Wash Counts Across All Sites', color='#003264', fontsize=22, y=1.1, x=0.47, fontweight='bold')
@@ -284,8 +284,8 @@ def package_distribution_plot(df, words, col, title, threshold=0):
 
     plt.tight_layout()
 
-    plt.savefig("figs/" + col, dpi=300)
-    return fig
+    # plt.savefig("figs/" + col, dpi=300)
+    return df, fig
 
 
 def monthly_package_distribution_plot(df, words, col=None, threshold=0):
@@ -446,7 +446,7 @@ def popular_days(df):
     legend.get_title().set_fontproperties(font)
     legend.get_title().set_fontsize(14)  
 
-    return bar.get_figure()
+    return df_filtered, bar.get_figure()
 
 def popular_hours(hours_df, threshold=10):
     # Define start and end dates for filtering
@@ -563,7 +563,7 @@ def optimal_weather_days(df):
     legend.get_title().set_fontproperties(font)
     legend.get_title().set_fontsize(14)  
 
-    return ax.get_figure()
+    return grouped_data, ax.get_figure()
 
 def washes_per_optimal_day(df):
     # Group data by hub_site, year, and month and calculate the sum of 'car_counts', 'precip_avg_days_above_15', and 'snowfall_avg_days_above_1'
@@ -615,7 +615,7 @@ def washes_per_optimal_day(df):
     legend.get_title().set_fontproperties(font)
     legend.get_title().set_fontsize(14) 
 
-    return ax.get_figure()
+    return grouped_data, ax.get_figure()
 
 # Econ Plots
 def econ_plot(nat_df, div_df, nat_y, div_y, ylabel, div_label):
@@ -681,7 +681,6 @@ def econ_plot(nat_df, div_df, nat_y, div_y, ylabel, div_label):
     # st.pyplot(plt)
     return
 
-
 # YoY Monthly
 def yoy_monthly(df, col):
     """
@@ -700,7 +699,6 @@ def yoy_monthly(df, col):
             & (df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
         )
     ]
-
 
 # Site QoQ
 def site_qoq(df, col: list, average=True):
@@ -735,12 +733,8 @@ def site_qoq(df, col: list, average=True):
         (quarterly_df["quarter"] == quarter) & (quarterly_df["year"] == end_year)
     ]
 
-    # Display df
-    # display(quarterly_df)
-
     # Return df
     return quarterly_df
-
 
 # Average QoQ
 def avg_qoq(df, col: list, average=True):
@@ -774,7 +768,6 @@ def avg_qoq(df, col: list, average=True):
 
     # Return df
     return quarterly_df
-
 
 # Package QoQ
 def qoq_package(df, col=None, threshold=0):
