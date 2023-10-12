@@ -1,7 +1,7 @@
 from reportlab.lib.colors import Color
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import inch, letter
-from reportlab.lib.styles import ParagraphStyle, ListStyle
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfbase.ttfonts import TTFont
@@ -17,8 +17,10 @@ from reportlab.platypus import (
     ListFlowable,
     ListItem,
 )
+from io import BytesIO
 import pandas as pd
-import report_functions.report_functions as rf
+import report_functions.report_functions_orig as rf
+import report_functions.sql_queries as sq
 
 # Register custom fonts
 pdfmetrics.registerFont(
@@ -40,31 +42,21 @@ class FooterCanvas(canvas.Canvas):
         self,
         *args,
         header_text="Market Evaluation",
-        wash_name,
-        wash_address,
+        address_df,
         date="Quarter 3 2023",
-        site_id=1,
         address="213 Elm St, Shelbyville, OH, 44444",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.pages = []
         self.width, self.height = letter
-        self.wash_name = wash_name.upper()
-        self.wash_address = wash_address.upper()
+        self.site_id = address_df['hub_site'].unique()[0]
+        self.wash_name = address_df['hub_name'].values[0]
         self.header_text = header_text
         # TODO: any processing needed to make this Quarter x Year?
         self.date = date
-        # TODO: get site_id, address from input
-        self.site_id = site_id
-        self.address1 = address.split(",")[0]
-        self.address2 = (
-            address.split(",")[1].strip()
-            + ", "
-            + address.split(",")[2].strip()
-            + " "
-            + address.split(",")[3].strip()
-        )
+        self.address1 = address_df['address'].values[0]
+        self.address2 = f"{address_df['city'].values[0]}, {address_df['state'].values[0]} {address_df['zip'].values[0]}"
 
         # Define some colors
         self.navy = Color(0 / 255.0, 50 / 255.0, 100 / 255.0)
@@ -159,7 +151,7 @@ class FooterCanvas(canvas.Canvas):
         # Car wash name, address
         self.setFillColor(self.grey)
         self.drawString(
-            30, 15, f"{self.wash_name} \u2022 {self.wash_address} \u2022 {self.date}"
+            30, 15, f"{self.wash_name.upper()} \u2022 {self.address1.upper()} \u2022 {self.date.upper()}"
         )
         # Site number, full address
         self.setStrokeColor(self.cobalt)
@@ -255,7 +247,7 @@ class FooterCanvas(canvas.Canvas):
                 mask="auto",
             )
             # Change font for text beside logo
-            self.setFont("AtlasGrotesk-Black", 8)
+            self.setFont("AtlasGrotesk", 8)
             self.setFillColor(self.grey)
             # Draw text beside logo
             self.drawString(6.8 * inch, self.height - 0.5 * inch, "WASH INDEX REPORT")
@@ -285,17 +277,17 @@ class FooterCanvas(canvas.Canvas):
         self.drawString(
             30,
             15,
-            f"{self.wash_name} \u2022 {self.address1.upper()} \u2022 {self.date.upper()}",
+            f"{self.wash_name.upper()} \u2022 {self.address1.upper()} \u2022 {self.date.upper()}",
         )
 
         self.restoreState()
 
 
 # Wrapper function for FooterCanvas
-def create_footer_canvas_wrapper(wash_name, wash_address):
+def create_footer_canvas_wrapper(address_df):
     def footer_canvas_wrapper(filename, *args, **kwargs):
         return FooterCanvas(
-            filename, wash_name=wash_name, wash_address=wash_address, **kwargs
+            filename, address_df=address_df, **kwargs
         )
 
     return footer_canvas_wrapper
@@ -312,9 +304,10 @@ class PDFPSReporte:
         hours_df,
         weather_grouped_df,
         weather_wash_df,
+        hub_id=1,
+        site_id=1,
         current_year=2023,
         quarter=2,
-        site_id=1,
         path="psreport.pdf",
         wash_name="car wash",
         wash_address="elm st",
@@ -327,16 +320,16 @@ class PDFPSReporte:
         self.hours_df = hours_df
         self.weather_grouped_df = weather_grouped_df
         self.weather_wash_df = weather_wash_df
+        self.hub_id = hub_id
+        self.site_id = site_id
         self.current_year = current_year
         self.quarter = quarter
-        self.site_id = site_id
         self.path = path
         self.elements = []
-        self.wash_name = wash_name.upper()
-        self.wash_address = wash_address.upper()
-        self.custom_wrapper = create_footer_canvas_wrapper(
-            self.wash_name, self.wash_address
-        )
+
+        self.address_df = sq.get_address(hub_id=self.hub_id, site_id=self.site_id)
+
+        self.custom_wrapper = create_footer_canvas_wrapper(self.address_df)
         self.width, self.height = letter
 
         self.current_df = self.full_df[
@@ -404,15 +397,17 @@ class PDFPSReporte:
         self.wash_index()
 
         # Build
-        self.doc = SimpleDocTemplate(path, pagesize=letter)
+        self.pdf = BytesIO()
+        self.doc = SimpleDocTemplate(self.pdf, pagesize=letter)
         self.doc.multiBuild(self.elements, canvasmaker=self.custom_wrapper)
+        self.pdf.seek(0)
 
     def bulleted_text(self, title_text, bullets: list):
         """
         Returns ListFlowable of text to be rendered as multi-colored bulleted list,
         with descriptive title. body_text must be a list of bullets to use.
         """
-        colors = [self.hex_cobalt, self.hex_skyblue, self.hex_navy]
+        colors = [self.hex_navy, self.hex_skyblue, self.hex_cobalt]
         formatted_title = Paragraph(
             f"""<font face=AtlasGrotesk-Bold size=10 color="#{self.hex_navy}">{title_text}</font><br/><br/>"""
         )
@@ -584,7 +579,7 @@ class PDFPSReporte:
         self.elements.append(Spacer(1, 20))
 
         # Set text for average membership rpc
-        mem_rpc = round(self.current_df["arm_average_ticket"].mean(), 1)
+        mem_rpc = round(self.current_df["arm_average_ticket"].mean(), 2)
         title = "Quarter Average Membership RPC"
         text = [f"Site {self.site_id}: ${mem_rpc}"]
         bullets = self.bulleted_text(title, text)
@@ -599,7 +594,7 @@ class PDFPSReporte:
         self.elements.append(Spacer(1, 10))
 
         # Set text for average retail rpc
-        retail_rpc = round(self.current_df["retail_ticket_average"].mean(), 1)
+        retail_rpc = round(self.current_df["retail_ticket_average"].mean(), 2)
         title = "Quarter Average Retail RPC"
         text = [f"Site {self.site_id}: ${retail_rpc}"]
         bullets = self.bulleted_text(title, text)
@@ -614,7 +609,7 @@ class PDFPSReporte:
         self.elements.append(PageBreak())
 
     def package_distribution(self):
-        img_width = 3.5 * inch
+        img_width = 4 * inch
         retail_packages = Image(
             self.plot_dict["retail_package_distribution"],
             width=img_width,
@@ -780,14 +775,15 @@ class PDFPSReporte:
     def wash_index(self):
         # Simple table with index score on left, text with numbers on right
         # TODO: need to make wash score plot in app
-        index_img = Image("figs/wash_score.png", width=3.5 * inch, height=2 * inch)
+        index_img = Image("figs/wash_score.png", width=3.25 * inch, height=2 * inch)
         text = f"""<font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Projected Wash Count</font><br/>
 <font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">8576</font><br/><br/>
 <font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Actual Wash Count</font><br/>
 <font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">8267</font>"""
         para = Paragraph(text, ParagraphStyle("space_after", leading=18))
         table = Table(
-            [[index_img, "", para]], colWidths=[3.5 * inch, 1 * inch, 3 * inch]
+            [["", index_img, "", para]],
+            colWidths=[0.5 * inch, 3.5 * inch, 1 * inch, 3 * inch],
         )
         table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
         self.elements.append(table)
@@ -814,7 +810,7 @@ class PDFPSReporte:
         ]["car_washes_per_day"].mean()
         optimal_wash_text = f"""
         <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Wash Count per Optimal Car Wash Day</font><br/><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">Site {self.site_id} washes approximately {round(total_optimal_day_washes)} per optimal wash day.</font><br/>
+        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">Site {self.site_id} washed approximately {round(total_optimal_day_washes)} cars per optimal wash day in Quarter {self.quarter} {self.current_year}.</font><br/>
         """
         optimal_wash_text = Paragraph(optimal_wash_text, self.grey_textbox)
 
@@ -831,3 +827,6 @@ class PDFPSReporte:
             box_text=optimal_wash_text,
         )
         self.elements.append(PageBreak())
+
+    def return_pdf(self):
+        return self.pdf

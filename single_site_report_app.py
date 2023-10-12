@@ -1,21 +1,18 @@
 ###----- Imports
-import streamlit as st
 import os
-from report_functions import report_functions, sql_queries
+from report_functions import report_functions_orig, sql_queries
 import reportlab_example as rl
-
+import boto3
 import pandas as pd
 from pyspark.sql import SparkSession
 from io import BytesIO
 import matplotlib.pyplot as plt
 
-# Title for App
-st.title("Wash Index Single Site Quarterly Report")
-
+# TODO: How to do this programmatically in short-term before user input? Do all hubs when triggered?
 # Get hub_id, site_id, and access token
-hub_id = st.number_input("Enter Hub ID:", min_value=10000, key=1)
-site_id = st.number_input("Enter Site ID:", min_value=1, key=2)
-access_token = st.text_input("Enter Databricks access token:")
+hub_id = 10007
+site_id = 4
+access_token = 'dapiae37eddb1effb520aa41ffd811a28072'
 
 
 ###----- Need to set up for the queries here
@@ -80,8 +77,8 @@ if access_token:
     col = "total_wash_counts"
     ylabel = "Number of Washes"
     # Call function to plot data
-    fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
-    # st.pyplot(fig)
+    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
+
     wash_counts_fig = save_plot(fig)
     plots_for_pdf["total_wash_counts"] = wash_counts_fig
 
@@ -90,13 +87,13 @@ if access_token:
     col = "revenue_per_car"
     ylabel = "Revenue Per Car ($)"
     # plot
-    fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
-    # st.pyplot(fig)
+    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
+
     rpc_fig = save_plot(fig)
     plots_for_pdf["revenue_per_car"] = rpc_fig
 
     ### Retail vs. Membership Sales
-    fig = report_functions.bar_plot(df)
+    fig = report_functions_orig.bar_plot(df)
     retail_memberships_plot = save_plot(fig)
     plots_for_pdf["retail_membership_distribution"] = retail_memberships_plot
 
@@ -108,7 +105,7 @@ if access_token:
     # threshold = 40
     # df = df[df[col]<threshold]
     # plot
-    fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
+    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
     membership_rpc_plot = save_plot(fig)
     plots_for_pdf["membership_rpc"] = membership_rpc_plot
 
@@ -120,7 +117,7 @@ if access_token:
     # threshold = 6
     # df = df[df[col]>threshold]
     # plot
-    fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
+    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
     retail_rpc_plot = save_plot(fig)
     plots_for_pdf["retail_rpc"] = retail_rpc_plot
 
@@ -132,7 +129,7 @@ if access_token:
     # threshold = 40
     # df = df[df[col]<threshold]
     # plot
-    fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
+    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
     churn_plot = save_plot(fig)
     plots_for_pdf["churn_rate"] = churn_plot
 
@@ -144,40 +141,38 @@ if access_token:
     # threshold = 40
     # df = df[df[col]<threshold]
     # plot
-    fig = report_functions.line_plot(df=df, col=col, ylabel=ylabel)
+    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
     capture_plot = save_plot(fig)
     plots_for_pdf["capture_rate"] = capture_plot
-    # st.pyplot(fig)
+
 
     ### Popular Days
     days_df = sql_queries.popular_days_query(hub_id)
-    days_df, fig = report_functions.popular_days(days_df)
+    days_df, fig = report_functions_orig.popular_days(days_df)
     popular_days_plot = save_plot(fig)
     plots_for_pdf["popular_days"] = popular_days_plot
-    # st.pyplot(fig)
+
 
     ### Popular Hours
     hours_df = sql_queries.popular_hours_query(hub_id)
-    fig = report_functions.popular_hours(hours_df)
+    fig = report_functions_orig.popular_hours(hours_df)
     popular_hours_plot = save_plot(fig)
     plots_for_pdf["popular_hours"] = popular_hours_plot
-    # st.pyplot(fig)
+
 
     ### Optimal Weather Days
     weather_df = sql_queries.optimal_weather_days_query(hub_id)
-    weather_grouped_df, fig = report_functions.optimal_weather_days(weather_df)
+    weather_grouped_df, fig = report_functions_orig.optimal_weather_days(weather_df)
     weather_grouped_df['quarter'] = weather_grouped_df.index.quarter
     optimal_weather_days_plot = save_plot(fig)
     plots_for_pdf["optimal_weather_days"] = optimal_weather_days_plot
-    # st.pyplot(fig)
+
 
     ### Washes Per Optimal Weather day
-    weather_wash_df, fig = report_functions.washes_per_optimal_day(weather_df)
+    weather_wash_df, fig = report_functions_orig.washes_per_optimal_day(weather_df)
     washes_per_optimal_day_plot = save_plot(fig)
     plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
-    # st.pyplot(fig)
 
-    # if st.button("Get Retail Package Distribution"):
     # Query for package breakdown
     retail_df = sql_queries.retail_package_query(hub_id, site_id)
     # Copy df to avoid issues in overwriting it, make sure to only get desired dates
@@ -196,22 +191,21 @@ if access_token:
     # Define title of plot
     title = "Retail Package\nDistribution"
     # Plot
-    retail_df, fig = report_functions.package_distribution_plot(
+    retail_df, fig = report_functions_orig.package_distribution_plot(
         df=package_df, words=words, col=col, title=title
     )
-    # st.pyplot(fig)
+
     retail_package_plot = save_plot(fig)
     plots_for_pdf["retail_package_distribution"] = retail_package_plot
     # qoq_df = qoq_package(df=df,col=col)
     # Retail package distribution over time
-    fig = report_functions.monthly_package_distribution_plot(
+    fig = report_functions_orig.monthly_package_distribution_plot(
         df=package_df, words=words, col=col
     )
-    # st.pyplot(fig)
+
     retail_monthly_package_plot = save_plot(fig)
     plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_plot
 
-    # if st.button("Get Membership Package Distribution"):
     # Query to get membership package breakdown
     mem_df = sql_queries.membership_package_query(hub_id, site_id)
     # Copy df to avoid issues in overwriting it, make sure to only get desired dates
@@ -230,27 +224,24 @@ if access_token:
     # Column of interest
     col = "active_arms"
     # Plot
-    mem_df, fig = report_functions.package_distribution_plot(
+    mem_df, fig = report_functions_orig.package_distribution_plot(
         df=package_df, words=words, col=col, title=title, threshold=threshold
     )
-    # st.pyplot(fig)
+
     membership_package_plot = save_plot(fig)
     plots_for_pdf["membership_package_distribution"] = membership_package_plot
     # qoq_df = qoq_package(df=df,col=col,threshold=threshold)
     # Membership change in wash package distribution over time
-    fig = report_functions.monthly_package_distribution_plot(
+    fig = report_functions_orig.monthly_package_distribution_plot(
         df=package_df, words=words, col=col, threshold=threshold
     )
-    # st.pyplot(fig)
+
     membership_monthly_package_plot = save_plot(fig)
     plots_for_pdf[
         "membership_monthly_package_distribution"
     ] = membership_monthly_package_plot
 
-
-if st.button("Generate Report PDF"):
-
-    rl.PDFPSReporte(
+    pdf_class = rl.PDFPSReporte(
         plot_dict=plots_for_pdf,
         full_df=full_df,
         mem_df=mem_df,
@@ -259,7 +250,20 @@ if st.button("Generate Report PDF"):
         hours_df=hours_df,
         weather_grouped_df=weather_grouped_df,
         weather_wash_df=weather_wash_df,
+        hub_id=hub_id,
         site_id=site_id,
         current_year=end_year,
         quarter=quarter,
     )
+
+    pdf = pdf_class.return_pdf()
+
+    def save_to_s3(bucket_name, file_key, pdf):
+        # Initialize the S3 client
+        s3 = boto3.client('s3')
+        
+        # Upload BytesIO object to S3
+        s3.upload_fileobj(pdf, bucket_name, file_key)
+
+    # Usage
+    save_to_s3('ncs-washindex-single-site-reports-815867481426', f'monthly_report_hub_{hub_id}_site_{site_id}.pdf', pdf)

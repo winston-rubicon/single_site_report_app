@@ -1,22 +1,19 @@
-# Use an official Python runtime as a base image
+# Start with the OpenJDK image
+FROM openjdk:11-jre-slim AS java-build
+
+# Switch to the Python image
 FROM python:3.11-slim-buster
 
-# Set the working directory in the container
+# Copy Java runtime from the OpenJDK image
+COPY --from=java-build /usr/local/openjdk-11/ /usr/local/openjdk-11/
+ENV PATH="/usr/local/openjdk-11/bin:${PATH}"
+ENV JAVA_HOME="/usr/local/openjdk-11"
+
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
+COPY requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+
 COPY . /app
 
-# Upgrade pip before proceeding
-RUN pip install --upgrade pip
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Make port 8501 available to the world outside this container
-EXPOSE 8501
-
-# Define environment variable (optional)
-# ENV NAME=World
-
-# Run the Streamlit app
-CMD ["streamlit", "run", "single_site_report_app.py"]
+CMD ["python", "single_site_report_app.py"]

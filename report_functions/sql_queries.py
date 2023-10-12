@@ -342,81 +342,155 @@ def retail_package_query(hub_id, site_id=None):
     # FOR SGT CLEAN ONLY need to include another package report ID to get proper distribution.
     # This necessitates a change in the WHERE condition in the tot_table selection below.
     # For other sites change the IN to an =, and get rid of the AND altogether.
+    if hub_id == 10007:
+        query3 = f"""
+                with tot_table as (
+                    SELECT
+                        {hub_id} as hub_id,
+                        hub_sites.hub_site,
+                        sale.objid as sale_id,
+                        item.name,
+                        item.reportcategory,
+                        YEAR(sale.LOGDATE) AS year,
+                        MONTH(sale.LOGDATE) AS month
+                    FROM
+                        ncs_index_dev.hub_{hub_id}.sale AS sale
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems
+                            ON sale.SITE = saleitems.SITE
+                            AND sale.OBJID = saleitems.SALEID
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.item
+                            ON saleitems.ITEM = item.OBJID
+                        Inner JOIN ncs_index_dev.data_hub.sites AS hub_sites
+                            ON sale.SITE = hub_sites.hub_site
+                            AND {hub_id} = hub_sites.hub_id
+                    WHERE 
+                        item.reportcategory IN {hub_dict[hub_id]['package_rpt']}
+                        AND item.name != 'EXT Package Wash'
+                ), 
 
-    query3 = f"""
-            with tot_table as (
-                SELECT
-                    {hub_id} as hub_id,
-                    hub_sites.hub_site,
-                    sale.objid as sale_id,
-                    item.name,
-                    item.reportcategory,
-                    YEAR(sale.LOGDATE) AS year,
-                    MONTH(sale.LOGDATE) AS month
-                FROM
-                    ncs_index_dev.hub_{hub_id}.sale AS sale
-                    Inner JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems
-                        ON sale.SITE = saleitems.SITE
-                        AND sale.OBJID = saleitems.SALEID
-                    Inner JOIN ncs_index_dev.hub_{hub_id}.item
-                        ON saleitems.ITEM = item.OBJID
-                    Inner JOIN ncs_index_dev.data_hub.sites AS hub_sites
-                        ON sale.SITE = hub_sites.hub_site
-                        AND {hub_id} = hub_sites.hub_id
-                WHERE 
-                    item.reportcategory IN {hub_dict[hub_id]['package_rpt']}
-                    AND item.name != 'EXT Package Wash'
-            ), 
+                arm_rdm as (
+                    SELECT
+                        {hub_id} as hub_id,
+                        hub_sites.hub_site,
+                        sale.objid as sale_id,
+                        item.name,
+                        item.reportcategory,
+                        YEAR(sale.LOGDATE) AS year,
+                        MONTH(sale.LOGDATE) AS month
+                    FROM
+                        ncs_index_dev.hub_{hub_id}.sale AS sale
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems
+                            ON sale.SITE = saleitems.SITE
+                            AND sale.OBJID = saleitems.SALEID
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.item
+                            ON saleitems.ITEM = item.OBJID
+                        Inner JOIN ncs_index_dev.data_hub.sites AS hub_sites
+                            ON sale.SITE = hub_sites.hub_site
+                            AND {hub_id} = hub_sites.hub_id
+                    WHERE
+                        item.reportcategory = {arms_rdm_rpt}
 
-            arm_rdm as (
-                SELECT
-                    {hub_id} as hub_id,
-                    hub_sites.hub_site,
-                    sale.objid as sale_id,
-                    item.name,
-                    item.reportcategory,
-                    YEAR(sale.LOGDATE) AS year,
-                    MONTH(sale.LOGDATE) AS month
-                FROM
-                    ncs_index_dev.hub_{hub_id}.sale AS sale
-                    Inner JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems
-                        ON sale.SITE = saleitems.SITE
-                        AND sale.OBJID = saleitems.SALEID
-                    Inner JOIN ncs_index_dev.hub_{hub_id}.item
-                        ON saleitems.ITEM = item.OBJID
-                    Inner JOIN ncs_index_dev.data_hub.sites AS hub_sites
-                        ON sale.SITE = hub_sites.hub_site
-                        AND {hub_id} = hub_sites.hub_id
-                WHERE
-                    item.reportcategory = {arms_rdm_rpt}
+                )
+                
+            SELECT
+                tot_table.hub_id,
+                tot_table.hub_site,
+                tot_table.name,
+                tot_table.reportcategory,
+                tot_table.year,
+                tot_table.month,
+                count(tot_table.sale_id) as car_counts
+            FROM tot_table
+            LEFT ANTI JOIN arm_rdm
+                ON tot_table.sale_id = arm_rdm.sale_id
 
-            )
-            
-        SELECT
-            tot_table.hub_id,
-            tot_table.hub_site,
-            tot_table.name,
-            tot_table.reportcategory,
-            tot_table.year,
-            tot_table.month,
-            count(tot_table.sale_id) as car_counts
-        FROM tot_table
-        LEFT ANTI JOIN arm_rdm
-            ON tot_table.sale_id = arm_rdm.sale_id
+            GROUP BY
+                tot_table.hub_id,
+                tot_table.hub_site,
+                tot_table.name,
+                tot_table.reportcategory,
+                tot_table.year,
+                tot_table.month
+            ORDER BY 
+                hub_id,
+                hub_site,
+                tot_table.year,
+                tot_table.month
+            """
+    else:
+        query3 = f"""
+                with tot_table as (
+                    SELECT
+                        {hub_id} as hub_id,
+                        hub_sites.hub_site,
+                        sale.objid as sale_id,
+                        item.name,
+                        item.reportcategory,
+                        YEAR(sale.LOGDATE) AS year,
+                        MONTH(sale.LOGDATE) AS month
+                    FROM
+                        ncs_index_dev.hub_{hub_id}.sale AS sale
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems
+                            ON sale.SITE = saleitems.SITE
+                            AND sale.OBJID = saleitems.SALEID
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.item
+                            ON saleitems.ITEM = item.OBJID
+                        Inner JOIN ncs_index_dev.data_hub.sites AS hub_sites
+                            ON sale.SITE = hub_sites.hub_site
+                            AND {hub_id} = hub_sites.hub_id
+                    WHERE 
+                        item.reportcategory = {item_category_dict[hub_id]}
+                ), 
 
-        GROUP BY
-            tot_table.hub_id,
-            tot_table.hub_site,
-            tot_table.name,
-            tot_table.reportcategory,
-            tot_table.year,
-            tot_table.month
-        ORDER BY 
-            hub_id,
-            hub_site,
-            tot_table.year,
-            tot_table.month
-        """
+                arm_rdm as (
+                    SELECT
+                        {hub_id} as hub_id,
+                        hub_sites.hub_site,
+                        sale.objid as sale_id,
+                        item.name,
+                        item.reportcategory,
+                        YEAR(sale.LOGDATE) AS year,
+                        MONTH(sale.LOGDATE) AS month
+                    FROM
+                        ncs_index_dev.hub_{hub_id}.sale AS sale
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.saleitems AS saleitems
+                            ON sale.SITE = saleitems.SITE
+                            AND sale.OBJID = saleitems.SALEID
+                        Inner JOIN ncs_index_dev.hub_{hub_id}.item
+                            ON saleitems.ITEM = item.OBJID
+                        Inner JOIN ncs_index_dev.data_hub.sites AS hub_sites
+                            ON sale.SITE = hub_sites.hub_site
+                            AND {hub_id} = hub_sites.hub_id
+                    WHERE
+                        item.reportcategory = {item_category_dict[hub_id]}
+
+                )
+                
+            SELECT
+                tot_table.hub_id,
+                tot_table.hub_site,
+                tot_table.name,
+                tot_table.reportcategory,
+                tot_table.year,
+                tot_table.month,
+                count(tot_table.sale_id) as car_counts
+            FROM tot_table
+            LEFT ANTI JOIN arm_rdm
+                ON tot_table.sale_id = arm_rdm.sale_id
+
+            GROUP BY
+                tot_table.hub_id,
+                tot_table.hub_site,
+                tot_table.name,
+                tot_table.reportcategory,
+                tot_table.year,
+                tot_table.month
+            ORDER BY 
+                hub_id,
+                hub_site,
+                tot_table.year,
+                tot_table.month
+            """
 
     with sql.connect(
         server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
@@ -704,3 +778,30 @@ def wash_index_table_query():
 
     # Now, 'data' contains the deserialized object
     # st.write(model)
+
+
+def get_address(hub_id, site_id):
+    query = f"""
+        SELECT hubs.hub_name, sites.hub_id, sites.hub_site, sites.address, sites.city, sites.state, sites.zip
+        FROM ncs_index_dev.data_hub.sites as sites
+        LEFT JOIN ncs_index_dev.data_hub.hubs as hubs 
+            ON hubs.hub_id = sites.hub_id
+        WHERE sites.hub_id = {hub_id}
+            AND sites.hub_site = {site_id}
+    """
+
+    with sql.connect(
+        server_hostname=os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
+        http_path=os.getenv("DATABRICKS_HTTP_PATH"),
+        access_token=os.getenv("DATABRICKS_TOKEN"),
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            data = cursor.fetchall_arrow()
+            df = data.to_pandas()
+            cursor.close()
+        connection.close()
+    
+    df['hub_name'] = df['hub_name'].str.replace('_', ' ')
+
+    return df
