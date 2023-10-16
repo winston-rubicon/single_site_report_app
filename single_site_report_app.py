@@ -1,269 +1,156 @@
 ###----- Imports
-import os
-from report_functions import report_functions_orig, sql_queries
-import reportlab_example as rl
-import boto3
-import pandas as pd
-from pyspark.sql import SparkSession
+import json
+from report_functions import report_functions as rf
+from report_functions import pdf_generator as pg
+import plotly.io as pio
 from io import BytesIO
-import matplotlib.pyplot as plt
 
-# TODO: How to do this programmatically in short-term before user input? Do all hubs when triggered?
-# Get hub_id, site_id, and access token
-hub_id = 10007
-site_id = 4
-access_token = 'dapiae37eddb1effb520aa41ffd811a28072'
+### TODO: The file name will be passed in either through user input (later) or through an AWS trigger (sooner) - what exactly will this look like?
+filename = "fake_data/10_2023.json"
+with open(filename, "r") as f:
+    data = json.load(f)
 
+site_number = data["site_number"]
 
-###----- Need to set up for the queries here
-# Store access token in environment
-os.environ["DATABRICKS_TOKEN"] = access_token
+# Current month, year
+month_year = filename.split("/")[-1].split(".")[0]
+current_month = int(month_year.split("_")[0])
+current_year = int(month_year.split("_")[1])
 
-# Start spark session
-spark = SparkSession.builder.appName("Databricks App").getOrCreate()
-
-# Setting up for queries
-server_hostname = "dbc-c3859ab4-d7b8.cloud.databricks.com"
-http_path = "/sql/1.0/warehouses/362bb606bc6f1cdc"
-
-os.environ["DATABRICKS_SQL_SERVER_HOSTNAME"] = server_hostname
-os.environ["DATABRICKS_HTTP_PATH"] = http_path
-
-spark.conf.set("spark.databricks.service.server.enabled", "true")
-spark.conf.set(
-    "spark.databricks.service.server.hostname",
-    os.getenv("DATABRICKS_SQL_SERVER_HOSTNAME"),
-)
-spark.conf.set("spark.databricks.service.http.path", os.getenv("DATABRICKS_HTTP_PATH"))
-spark.conf.set("spark.databricks.service.token", os.getenv("DATABRICKS_TOKEN"))
-spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-
-
-# Your start and end year, month
-# TODO: How to implement these programmatically? User input? Current date and do previous quarter?
-start_year, start_month = 2022, 4
-end_year, end_month = 2023, 6
-query_year = start_year - 1
-
-# Current quarter
-quarter = 2
-
+# Dictionary that will be used in pdf generation code
 plots_for_pdf = {}
 
+###----- Generating figures, storing in buffers in dictionary
 
-def save_plot(fig):
-    """Saving plots generated in app to buffers in order to make pdf without saving files"""
-    buffer = BytesIO()
-    plt.savefig(buffer, format="png", dpi=300)
-    buffer.seek(0)
-    return buffer
+### Wash Counts
+# Define column, ylabel to be used for plot
+col = "total_wash_counts"
+ylabel = "Number of Washes"
+# Plot, save fig to buffer and put in dictionary
+fig = rf.line_plot(col=col, ylabel=ylabel)
+wash_counts_fig = rf.save_plot(fig)
+plots_for_pdf["total_wash_counts"] = wash_counts_fig
 
+### Revenue Per Car
+col = "revenue_per_car"
+ylabel = "Revenue Per Car ($)"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+rpc_fig = rf.save_plot(fig)
+plots_for_pdf["revenue_per_car"] = rpc_fig
 
-if access_token:
-    ###------ Query database
-    full_df = sql_queries.gsr_report_query(spark, hub_id, site_id)
-    # Copy df to avoid issues in overwriting it, make sure to only get desired dates
-    df = full_df[
-        (
-            (full_df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
-            & (full_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
-        )
-    ]
+### Retail vs. Membership Sales
+cols = ["retail_wash_counts", "membership_wash_counts"]
+ylabel = "Number of Washes"
+legend_labels = ["Retail", "Membership"]
+fig = rf.year_bar_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
+retail_memberships_plot = rf.save_plot(fig)
+plots_for_pdf["retail_membership_distribution"] = retail_memberships_plot
 
-    ###----- Plotting/Displaying
+### Membership RPC
+col = "membership_rpc"
+ylabel = "Average Revenue ($)"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+membership_rpc_plot = rf.save_plot(fig)
+plots_for_pdf["membership_rpc"] = membership_rpc_plot
 
-    ### Wash Counts
-    # Define column, ylabel to be used for plot
-    col = "total_wash_counts"
-    ylabel = "Number of Washes"
-    # Call function to plot data
-    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
+### Retail RPC
+col = "retail_rpc"
+ylabel = "Average Revenue ($)"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+retail_rpc_plot = rf.save_plot(fig)
+plots_for_pdf["retail_rpc"] = retail_rpc_plot
 
-    wash_counts_fig = save_plot(fig)
-    plots_for_pdf["total_wash_counts"] = wash_counts_fig
+### Churn Rate
+col = "churn_rate"
+ylabel = "Churn %"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+churn_plot = rf.save_plot(fig)
+plots_for_pdf["churn_rate"] = churn_plot
 
-    ### Revenue Per Car
-    # define col, ylabel
-    col = "revenue_per_car"
-    ylabel = "Revenue Per Car ($)"
-    # plot
-    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
+### Capture Rate
+col = "capture_rate"
+ylabel = "Capture %"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+capture_plot = rf.save_plot(fig)
+plots_for_pdf["capture_rate"] = capture_plot
 
-    rpc_fig = save_plot(fig)
-    plots_for_pdf["revenue_per_car"] = rpc_fig
+### Popular Days
+col = "popular_days"
+ylabel = "Average Counts"
+fig = rf.variable_bar_plot(col=col, ylabel=ylabel)
+popular_days_plot = rf.save_plot(fig)
+plots_for_pdf["popular_days"] = popular_days_plot
 
-    ### Retail vs. Membership Sales
-    fig = report_functions_orig.bar_plot(df)
-    retail_memberships_plot = save_plot(fig)
-    plots_for_pdf["retail_membership_distribution"] = retail_memberships_plot
+### Popular Hours
+col = "popular_days"
+ylabel = "Average Counts"
+fig = rf.variable_bar_plot(col=col, ylabel=ylabel)
+popular_hours_plot = rf.save_plot(fig)
+plots_for_pdf["popular_hours"] = popular_hours_plot
 
-    ### Membership RPC
-    # define col, ylabel
-    col = "arm_average_ticket"
-    ylabel = "Average Revenue ($)"
-    # # If threshold necessary, include it here
-    # threshold = 40
-    # df = df[df[col]<threshold]
-    # plot
-    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
-    membership_rpc_plot = save_plot(fig)
-    plots_for_pdf["membership_rpc"] = membership_rpc_plot
+### Optimal Weather Days
+col = "optimal_weather_days"
+ylabel = "Days"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+optimal_weather_days_plot = rf.save_plot(fig)
+plots_for_pdf["optimal_weather_days"] = optimal_weather_days_plot
 
-    ### Retail RPC
-    # define col, ylabel
-    col = "retail_ticket_average"
-    ylabel = "Average Revenue ($)"
-    # # If threshold necessary, include it here
-    # threshold = 6
-    # df = df[df[col]>threshold]
-    # plot
-    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
-    retail_rpc_plot = save_plot(fig)
-    plots_for_pdf["retail_rpc"] = retail_rpc_plot
+### Washes Per Optimal Weather day
+col = "washes_per_optimal_day"
+ylabel = "Car Washes Per Optimal Day"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+washes_per_optimal_day_plot = rf.save_plot(fig)
+plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
 
-    ### Churn Rate
-    # define col, ylabel
-    col = "churn_rate"
-    ylabel = "Churn %"
-    # If threshold necessary, include it here
-    # threshold = 40
-    # df = df[df[col]<threshold]
-    # plot
-    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
-    churn_plot = save_plot(fig)
-    plots_for_pdf["churn_rate"] = churn_plot
+### Retail Package Distribution
+col = "retail_package_distribution"
+title = "Retail Package\nDistribution"
+fig = rf.package_distribution_plot(col=col, title=title)
+retail_package_plot = rf.save_plot(fig)
+plots_for_pdf["retail_package_distribution"] = retail_package_plot
 
-    ### Capture Rate
-    # define col, ylabel
-    col = "capture_rate"
-    ylabel = "Capture %"
-    # If threshold necessary, include it here
-    # threshold = 40
-    # df = df[df[col]<threshold]
-    # plot
-    fig = report_functions_orig.line_plot(df=df, col=col, ylabel=ylabel)
-    capture_plot = save_plot(fig)
-    plots_for_pdf["capture_rate"] = capture_plot
+### Retail package distribution over time
+col = "monthly_retail_package_distribution"
+ylabel = "Distribution (%)"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+retail_monthly_package_plot = rf.save_plot(fig)
+plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_plot
 
+### Membership Package Distribution
+col = "membership_package_distribution"
+title = "Active Membership \nDistribution"
+fig = rf.package_distribution_plot(col=col, title=title)
+membership_package_plot = rf.save_plot(fig)
+plots_for_pdf["membership_package_distribution"] = membership_package_plot
 
-    ### Popular Days
-    days_df = sql_queries.popular_days_query(hub_id)
-    days_df, fig = report_functions_orig.popular_days(days_df)
-    popular_days_plot = save_plot(fig)
-    plots_for_pdf["popular_days"] = popular_days_plot
+### Membership package distribution over time
+col = "monthly_membership_package_distribution"
+ylabel = "Distribution (%)"
+fig = rf.line_plot(col=col, ylabel=ylabel)
+membership_monthly_package_plot = rf.save_plot(fig)
+plots_for_pdf[
+    "membership_monthly_package_distribution"
+] = membership_monthly_package_plot
 
+### Wash Index Score
+value = data['wash_index_score']['score']
+fig = rf.wash_index_score(value)
+# Have to save plotly graphs in special manner
+wash_index_score = BytesIO()
+pio.write_image(fig, wash_index_score, format='png')
+plots_for_pdf['wash_index_score'] = wash_index_score
 
-    ### Popular Hours
-    hours_df = sql_queries.popular_hours_query(hub_id)
-    fig = report_functions_orig.popular_hours(hours_df)
-    popular_hours_plot = save_plot(fig)
-    plots_for_pdf["popular_hours"] = popular_hours_plot
+pdf_class = pg.PDFPSReporte(
+    plot_dict=plots_for_pdf,
+    data_dict=data,
+    current_year=current_year,
+    current_month=current_month,
+)
 
+pdf = pdf_class.return_pdf()
 
-    ### Optimal Weather Days
-    weather_df = sql_queries.optimal_weather_days_query(hub_id)
-    weather_grouped_df, fig = report_functions_orig.optimal_weather_days(weather_df)
-    weather_grouped_df['quarter'] = weather_grouped_df.index.quarter
-    optimal_weather_days_plot = save_plot(fig)
-    plots_for_pdf["optimal_weather_days"] = optimal_weather_days_plot
-
-
-    ### Washes Per Optimal Weather day
-    weather_wash_df, fig = report_functions_orig.washes_per_optimal_day(weather_df)
-    washes_per_optimal_day_plot = save_plot(fig)
-    plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
-
-    # Query for package breakdown
-    retail_df = sql_queries.retail_package_query(hub_id, site_id)
-    # Copy df to avoid issues in overwriting it, make sure to only get desired dates
-    package_df = retail_df[
-        (retail_df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
-        & (retail_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
-    ]
-
-    # List of words to filter on
-    # TODO: This needs to either be in the hub dictionary or determiend programmatically (or both)
-    words = ["bronze", "silver", "gold", "platinum"]
-    # Column of interest
-    col = "car_counts"
-    # Define a percentage threshold for 'Other' category, e.g., 1%
-    threshold = 0
-    # Define title of plot
-    title = "Retail Package\nDistribution"
-    # Plot
-    retail_df, fig = report_functions_orig.package_distribution_plot(
-        df=package_df, words=words, col=col, title=title
-    )
-
-    retail_package_plot = save_plot(fig)
-    plots_for_pdf["retail_package_distribution"] = retail_package_plot
-    # qoq_df = qoq_package(df=df,col=col)
-    # Retail package distribution over time
-    fig = report_functions_orig.monthly_package_distribution_plot(
-        df=package_df, words=words, col=col
-    )
-
-    retail_monthly_package_plot = save_plot(fig)
-    plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_plot
-
-    # Query to get membership package breakdown
-    mem_df = sql_queries.membership_package_query(hub_id, site_id)
-    # Copy df to avoid issues in overwriting it, make sure to only get desired dates
-    package_df = mem_df[
-        (mem_df["date"] >= pd.to_datetime(f"{start_year}-{start_month}-01"))
-        & (mem_df["date"] <= pd.to_datetime(f"{end_year}-{end_month}-01"))
-    ]
-
-    # List of words to filter on
-    # TODO: This needs to either be in the hub dictionary or determiend programmatically (or both)
-    words = ["bronze", "silver", "gold", "platinum"]
-    # Define a percentage threshold for 'Other' category, e.g., 1%
-    threshold = 5
-    # Define title of plot
-    title = "Active Membership \nDistribution"
-    # Column of interest
-    col = "active_arms"
-    # Plot
-    mem_df, fig = report_functions_orig.package_distribution_plot(
-        df=package_df, words=words, col=col, title=title, threshold=threshold
-    )
-
-    membership_package_plot = save_plot(fig)
-    plots_for_pdf["membership_package_distribution"] = membership_package_plot
-    # qoq_df = qoq_package(df=df,col=col,threshold=threshold)
-    # Membership change in wash package distribution over time
-    fig = report_functions_orig.monthly_package_distribution_plot(
-        df=package_df, words=words, col=col, threshold=threshold
-    )
-
-    membership_monthly_package_plot = save_plot(fig)
-    plots_for_pdf[
-        "membership_monthly_package_distribution"
-    ] = membership_monthly_package_plot
-
-    pdf_class = rl.PDFPSReporte(
-        plot_dict=plots_for_pdf,
-        full_df=full_df,
-        mem_df=mem_df,
-        retail_df=retail_df,
-        days_df=days_df,
-        hours_df=hours_df,
-        weather_grouped_df=weather_grouped_df,
-        weather_wash_df=weather_wash_df,
-        hub_id=hub_id,
-        site_id=site_id,
-        current_year=end_year,
-        quarter=quarter,
-    )
-
-    pdf = pdf_class.return_pdf()
-
-    def save_to_s3(bucket_name, file_key, pdf):
-        # Initialize the S3 client
-        s3 = boto3.client('s3')
-        
-        # Upload BytesIO object to S3
-        s3.upload_fileobj(pdf, bucket_name, file_key)
-
-    # Usage
-    save_to_s3('ncs-washindex-single-site-reports-815867481426', f'monthly_report_hub_{hub_id}_site_{site_id}.pdf', pdf)
+rf.save_to_s3(
+    "ncs-washindex-single-site-reports-815867481426",
+    f"monthly_report_{data['hub_name']}_site_{site_number}.pdf",
+    pdf,
+)
