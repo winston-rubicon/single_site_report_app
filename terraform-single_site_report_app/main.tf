@@ -39,6 +39,12 @@ module "ecs" {
   security_group_id = data.aws_security_group.selected.id
 }
 
+module "lambda" {
+  source = "./modules/lambda"
+  s3_bucket_name  = var.s3_bucket_name
+  ecs_cluster_arn = module.ecs.ecs_cluster_arn
+}
+
 resource "aws_sqs_queue" "single_site_report_queue" {
   name                      = "single_site_report_queue"
   delay_seconds             = 5

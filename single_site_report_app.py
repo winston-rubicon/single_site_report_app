@@ -4,11 +4,21 @@ from report_functions import report_functions as rf
 from report_functions import pdf_generator as pg
 import plotly.io as pio
 from io import BytesIO
+import os
+import boto3
 
-### TODO: The file name will be passed in either through user input (later) or through an AWS trigger (sooner) - what exactly will this look like?
-filename = "fake_data/10_2023.json"
-with open(filename, "r") as f:
-    data = json.load(f)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.load(file_content)
+
+# ### TODO: The file name will be passed in either through user input (later) or through an AWS trigger (sooner) - what exactly will this look like?
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
 
 site_number = data["site_number"]
 
@@ -112,7 +122,8 @@ plots_for_pdf["retail_package_distribution"] = retail_package_plot
 ### Retail package distribution over time
 col = "monthly_retail_package_distribution"
 ylabel = "Distribution (%)"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+legend_labels = data[col].keys()
+fig = rf.line_plot(col=col, ylabel=ylabel, legend_labels=legend_labels)
 retail_monthly_package_plot = rf.save_plot(fig)
 plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_plot
 
@@ -126,19 +137,20 @@ plots_for_pdf["membership_package_distribution"] = membership_package_plot
 ### Membership package distribution over time
 col = "monthly_membership_package_distribution"
 ylabel = "Distribution (%)"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+legend_labels = data[col].keys()
+fig = rf.line_plot(col=col, ylabel=ylabel, legend_labels=legend_labels)
 membership_monthly_package_plot = rf.save_plot(fig)
 plots_for_pdf[
     "membership_monthly_package_distribution"
 ] = membership_monthly_package_plot
 
 ### Wash Index Score
-value = data['wash_index_score']['score']
+value = data["wash_index_score"]["score"]
 fig = rf.wash_index_score(value)
 # Have to save plotly graphs in special manner
 wash_index_score = BytesIO()
-pio.write_image(fig, wash_index_score, format='png')
-plots_for_pdf['wash_index_score'] = wash_index_score
+pio.write_image(fig, wash_index_score, format="png")
+plots_for_pdf["wash_index_score"] = wash_index_score
 
 pdf_class = pg.PDFPSReporte(
     plot_dict=plots_for_pdf,
@@ -150,7 +162,7 @@ pdf_class = pg.PDFPSReporte(
 pdf = pdf_class.return_pdf()
 
 rf.save_to_s3(
-    "ncs-washindex-single-site-reports-815867481426",
+    bucket_name,
     f"monthly_report_{data['hub_name']}_site_{site_number}.pdf",
     pdf,
 )

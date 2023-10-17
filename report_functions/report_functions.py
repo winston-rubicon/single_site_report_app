@@ -1,15 +1,25 @@
-import json
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 import calendar
 import plotly.graph_objects as go
 from io import BytesIO
 import boto3
+import os
+import json
 
-### TODO: The file name will be passed in either through user input (later) or through an AWS trigger (sooner) - what exactly will this look like?
-filename = 'fake_data/10_2023.json'
-with open(filename, "r") as f:
-    data = json.load(f)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.load(file_content)
+
+
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
+
 
 # Register AtlasGrotesk font
 font_manager.fontManager.addfont("branding/fonts/AtlasGrotesk-Regular.ttf")
@@ -55,6 +65,7 @@ for date in month_year_list:
     else:
         month_labels.append(month_name)
 
+
 ### Some general use functions
 def save_plot(fig):
     """Saving plots generated in app to buffers in order to make pdf without saving files"""
@@ -63,6 +74,7 @@ def save_plot(fig):
     buffer.seek(0)
     return buffer
 
+
 def save_to_s3(bucket_name, file_key, pdf):
     # Initialize the S3 client
     s3 = boto3.client("s3")
@@ -70,21 +82,40 @@ def save_to_s3(bucket_name, file_key, pdf):
     # Upload BytesIO object to S3
     s3.upload_fileobj(pdf, bucket_name, file_key)
 
+
 ### Now begin the plotting functions
 # Line Plot
-def line_plot(col, ylabel):
+def line_plot(col, ylabel, legend_labels=None):
     """
     Plots the data that will be plotted as a line plot function of month for the year leading up to the current month the report is generated.
     """
-
-    # First get the appropriate y data
-    ydata = [data[col][month_year] for month_year in month_year_list]
-
     # Create a figure
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Plot the data
-    ax.plot(month_labels, ydata)
+    # If legend labels exist loop over all labels to be plotted
+    if legend_labels is not None:
+        for i, label in enumerate(data[col].keys()):
+            # First get the appropriate y data
+            ydata = [data[col][label][month_year] for month_year in month_year_list]
+
+            # Plot the data
+            ax.plot(month_labels, ydata, color=color_palette[i], label=col)
+        ax.legend(
+            labels=legend_labels,
+            fontsize=14,
+            prop=font,
+        )
+
+    else:
+        ydata = [data[col][month_year] for month_year in month_year_list]
+
+        # Plot the data
+        ax.plot(month_labels, ydata, color=color_palette[0])
+
+        # Set axis font parameters
+        plt.ylabel(ylabel, color=color_palette[0], fontproperties=font)
+        ax.yaxis.label.set_fontsize(14)
+        ax.set_xlabel(None)
 
     # Set axis font parameters
     plt.ylabel(ylabel, color=color_palette[0], fontproperties=font)
@@ -120,7 +151,7 @@ def line_plot(col, ylabel):
 
 
 # Bar Plot
-def year_bar_plot(cols, ylabel, legend_labels=['blah']):
+def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
     """
     For now only used to plot the retail/membership breakdown as a function of month of the year (assumes all 12 months), maybe more bar plots in the future?
     """
@@ -131,7 +162,7 @@ def year_bar_plot(cols, ylabel, legend_labels=['blah']):
     # create fig, ax
     fig, ax = plt.subplots(figsize=(12, 3))
     # Generate bar plot
-    width = 0.4 if len(legend_labels)==2 else 0.8
+    width = 0.4 if len(legend_labels) == 2 else 0.8
     plt.bar(
         month_labels,
         ydata0,
@@ -139,7 +170,7 @@ def year_bar_plot(cols, ylabel, legend_labels=['blah']):
         color=color_palette[0],
         label=legend_labels[0],
     )
-    if len(cols)>1:
+    if len(cols) > 1:
         ydata1 = [data[cols[1]][month_year] for month_year in month_year_list]
         plt.bar(
             [i + width for i in range(len(month_labels))],
@@ -160,10 +191,14 @@ def year_bar_plot(cols, ylabel, legend_labels=['blah']):
 
     plt.subplots_adjust(right=0.85)
     legend = ax.legend(
-        legend_labels, loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=14, prop=font
+        legend_labels,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        fontsize=14,
+        prop=font,
     )
 
-    if len(legend_labels)==1:
+    if len(legend_labels) == 1:
         legend.set_visible(False)
 
     # For x-ticks
@@ -181,10 +216,11 @@ def year_bar_plot(cols, ylabel, legend_labels=['blah']):
 
     return fig
 
+
 def variable_bar_plot(col, ylabel):
-    '''
+    """
     Variable here refers to the x-axis labels being any format, but expected to be in order in json.
-    '''
+    """
     xdata = data[col].keys()
 
     # Assuming that xdata is the properly formatted labels and they are in order
@@ -223,11 +259,12 @@ def variable_bar_plot(col, ylabel):
 
     return fig
 
+
 # Package Distribution Plots
 def package_distribution_plot(col, title):
-    '''
+    """
     Create ring plots for the desired package breakdown (retail or membership)
-    '''
+    """
     package_names = data[col].keys()
     package_data = data[col].values()
 
@@ -253,7 +290,7 @@ def package_distribution_plot(col, title):
 
     # Add a legend
     legend = ax.legend(
-        patches,
+        handles=patches,
         labels=package_names,
         loc="lower center",
         bbox_to_anchor=(0.5, -0.25),
@@ -276,51 +313,63 @@ def package_distribution_plot(col, title):
 
     return fig
 
+
 def wash_index_score(value):
     max_value = 150
-    fig = go.Figure(go.Indicator(
-        mode = "gauge",
-        value = value,
-        domain = {'x': [0, 1], 'y': [0.3, 1]},
-        gauge = {
-            'axis': {
-                'range': [0, max_value], 
-                'tickvals': [100], 
-                'ticktext': ['100'], 
-                'tickfont': {'color': '#003264', 'size':28, 'family': 'Atlas Grotesk'},
-                'tickwidth': 2
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge",
+            value=value,
+            domain={"x": [0, 1], "y": [0.3, 1]},
+            gauge={
+                "axis": {
+                    "range": [0, max_value],
+                    "tickvals": [100],
+                    "ticktext": ["100"],
+                    "tickfont": {
+                        "color": "#003264",
+                        "size": 28,
+                        "family": "Atlas Grotesk",
+                    },
+                    "tickwidth": 2,
+                },
+                "steps": [
+                    {"range": [0, value], "color": "#0b75e1"},
+                    {"range": [value, max_value], "color": "#F5F5F5"},
+                ],
+                "bar": {"color": "#0b75e1"},
+                "borderwidth": 0,
+                "threshold": {
+                    "line": {"color": "#ffcb00", "width": 6},
+                    "thickness": 1,
+                    "value": 100,
+                },
             },
-            'steps': [
-                {'range': [0, value], 'color': "#0b75e1"},
-                {'range': [value, max_value], 'color': "#F5F5F5"}
-            ],
-            'bar': {'color': "#0b75e1"},
-            'borderwidth': 0,  
-            'threshold': {'line': {'color': "#ffcb00", 'width': 6}, 'thickness': 1, 'value': 100}
-        }
-    ))
+        )
+    )
 
-    fig.add_trace(go.Indicator(
-        mode = "number",
-        value = value,
-        number={
-            'font': {'size': 50, 'family': 'Atlas Grotesk', 'color': "#0b75e1"}
-        },
-        domain = {'x': [0, 1], 'y': [0.45, 0.7]}
-    ))
+    fig.add_trace(
+        go.Indicator(
+            mode="number",
+            value=value,
+            number={
+                "font": {"size": 50, "family": "Atlas Grotesk", "color": "#0b75e1"}
+            },
+            domain={"x": [0, 1], "y": [0.45, 0.7]},
+        )
+    )
 
     fig.update_layout(
-        paper_bgcolor='white',
-        width=600,    # Specify the width
-        height=400,   # Specify the height
-        margin=
-            dict(
-                l=10,  # left margin
-                r=10,  # right margin
-                b=10,  # bottom margin
-                t=10,  # top margin
-                pad=0  # padding
-            ),
+        paper_bgcolor="white",
+        width=600,  # Specify the width
+        height=400,  # Specify the height
+        margin=dict(
+            l=10,  # left margin
+            r=10,  # right margin
+            b=10,  # bottom margin
+            t=10,  # top margin
+            pad=0,  # padding
+        ),
         annotations=[
             dict(
                 x=0.5,
@@ -328,12 +377,12 @@ def wash_index_score(value):
                 showarrow=False,
                 text="Wash Count Score",
                 font_size=22,
-                font_family='Atlas Grotesk',
-                font_color='#003264',
+                font_family="Atlas Grotesk",
+                font_color="#003264",
                 xref="paper",
-                yref="paper"
+                yref="paper",
             ),
-        ]
+        ],
     )
 
     return fig

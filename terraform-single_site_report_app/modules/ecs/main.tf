@@ -85,7 +85,7 @@ resource "aws_iam_role_policy" "ecs_tasks" {
 }
 
 resource "aws_ecs_cluster" "main" {
-  name = "single_site_report_app_cluster"  # replace with your preferred ECS cluster name
+  name = "single_site_report_app_cluster"
 }
 
 

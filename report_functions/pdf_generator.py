@@ -759,6 +759,7 @@ class PDFPSReporte:
             plot=self.plot_dict["washes_per_optimal_day"],
             plot_title="Washes Per Optimal Car Wash Day",
             box_text=optimal_wash_text,
+            plot_height=2.75*inch,
         )
         self.elements.append(PageBreak())
 
