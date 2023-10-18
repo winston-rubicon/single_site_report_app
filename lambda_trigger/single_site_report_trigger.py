@@ -37,4 +37,5 @@ def lambda_handler(event, context):
             }]
         }
     )
+    response['tasks'][0]['createdAt'] = response['tasks'][0]['createdAt'].isoformat()
     return response

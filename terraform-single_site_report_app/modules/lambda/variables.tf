@@ -8,3 +8,8 @@ variable "ecs_cluster_arn" {
   description = "ARN of the ECS cluster where tasks will be run"
   type        = string
 }
+
+variable "subnet_ids" {
+  description = "List of subnet IDs for the VPC"
+  type        = list(string)
+}

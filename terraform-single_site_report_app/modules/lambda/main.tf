@@ -4,6 +4,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   lambda_function {
     lambda_function_arn = aws_lambda_function.ecs_trigger.arn
     events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".json"
   }
 }
 
@@ -19,11 +20,11 @@ resource "aws_lambda_function" "ecs_trigger" {
   filename      = "../lambda_trigger/single_site_report_trigger.py.zip"
   function_name = "triggerEcsTask"
   role          = aws_iam_role.lambda_exec.arn
-  handler       = "trigger_ecs_task.lambda_handler"
+  handler       = "single_site_report_trigger.lambda_handler"
   runtime       = "python3.11"
   environment {
     variables = {
-      SUBNET_IDS  = join(",", data.aws_subnets.selected.ids)
+      SUBNET_IDS  = join(",", var.subnet_ids)
     }
   }
 }
@@ -68,6 +69,12 @@ data "aws_iam_policy_document" "lambda_exec" {
     }
   }
 
+    statement {
+      effect = "Allow"
+      actions = ["iam:PassRole"]
+      resources = ["arn:aws:iam::815867481426:role/single_site_report_app_role"]
+    }
+
   statement {
     effect = "Allow"
     actions = [
@@ -77,7 +84,5 @@ data "aws_iam_policy_document" "lambda_exec" {
     ]
     resources = ["arn:aws:logs:*:*:*"]
   }
-
-  # You might need more permissions based on the specifics of your use case.
 }
 

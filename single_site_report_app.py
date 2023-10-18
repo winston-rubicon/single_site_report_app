@@ -12,7 +12,7 @@ bucket_name = os.environ.get('BUCKET_NAME')
 s3 = boto3.client('s3')
 s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
 file_content = s3_object['Body'].read().decode('utf-8')
-data = json.load(file_content)
+data = json.loads(file_content)
 
 # ### TODO: The file name will be passed in either through user input (later) or through an AWS trigger (sooner) - what exactly will this look like?
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
@@ -163,6 +163,6 @@ pdf = pdf_class.return_pdf()
 
 rf.save_to_s3(
     bucket_name,
-    f"monthly_report_{data['hub_name']}_site_{site_number}.pdf",
+    f"monthly_report_{data['hub_name'].replace(' ','_')}_site_{site_number}.pdf",
     pdf,
 )

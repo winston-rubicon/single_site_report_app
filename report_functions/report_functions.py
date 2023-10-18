@@ -12,7 +12,7 @@ bucket_name = os.environ.get('BUCKET_NAME')
 s3 = boto3.client('s3')
 s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
 file_content = s3_object['Body'].read().decode('utf-8')
-data = json.load(file_content)
+data = json.loads(file_content)
 
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
@@ -49,7 +49,7 @@ month_year_list = sorted(
     data["total_wash_counts"].keys(),
     key=lambda x: (int(x.split("_")[1]), int(x.split("_")[0])),
 )
-# TODO: will current year, month come from filename? User input?
+
 current_month = int(month_year_list[-1].split("_")[0])
 current_year = int(month_year_list[-1].split("_")[1])
 

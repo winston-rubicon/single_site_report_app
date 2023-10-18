@@ -61,7 +61,6 @@ data "aws_iam_policy_document" "ecs_tasks" {
 
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  # replace with your preferred IAM role name
   name = "single_site_report_app_role"
 
   assume_role_policy = jsonencode({
@@ -93,8 +92,7 @@ resource "aws_ecs_service" "main" {
   name            = "single_site_report_app_service" 
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.main.arn
-   # adjust as needed
-  desired_count   = 1
+  desired_count   = 0
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -126,22 +124,32 @@ resource "aws_ecs_task_definition" "main" {
     operating_system_family = "LINUX"
     cpu_architecture = "X86_64"
   }
-
   container_definitions = <<DEFINITION
-    [
-      {
-        "name": "single_site_report_app_container",
-        "image": "${var.ecr_repository_url}",
-        "essential": true,
-        "logConfiguration": {
-          "logDriver": "awslogs",
-          "options": {
-            "awslogs-group": "/ecs/single_site_report_app_log_group",
-            "awslogs-region": "us-east-1",
-            "awslogs-stream-prefix": "ecs"
-          }
+  [
+    {
+      "name": "single_site_report_app_container",
+      "image": "${var.ecr_repository_url}",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/single_site_report_app_log_group",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
         }
-      }
-    ]
+      },
+      "environment": [
+        {
+          "name": "FILENAME",
+          "value": ""
+        },
+        {
+          "name": "BUCKET_NAME",
+          "value": ""
+        }
+      ]
+    }
+  ]
   DEFINITION
+
 }
