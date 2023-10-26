@@ -14,9 +14,8 @@ s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
 file_content = s3_object['Body'].read().decode('utf-8')
 data = json.loads(file_content)
 
-# ### TODO: The file name will be passed in either through user input (later) or through an AWS trigger (sooner) - what exactly will this look like?
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
+# filename = "fake_data/6_2023.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 
@@ -34,7 +33,7 @@ plots_for_pdf = {}
 
 ### Wash Counts
 # Define column, ylabel to be used for plot
-col = "total_wash_counts"
+col = "total_wash_count"
 ylabel = "Number of Washes"
 # Plot, save fig to buffer and put in dictionary
 fig = rf.line_plot(col=col, ylabel=ylabel)
@@ -49,7 +48,7 @@ rpc_fig = rf.save_plot(fig)
 plots_for_pdf["revenue_per_car"] = rpc_fig
 
 ### Retail vs. Membership Sales
-cols = ["retail_wash_counts", "membership_wash_counts"]
+cols = ["retail_wash_count", "membership_wash_count"]
 ylabel = "Number of Washes"
 legend_labels = ["Retail", "Membership"]
 fig = rf.year_bar_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
@@ -152,6 +151,38 @@ wash_index_score = BytesIO()
 pio.write_image(fig, wash_index_score, format="png")
 plots_for_pdf["wash_index_score"] = wash_index_score
 
+### CPI YoY
+cols = ['cpi_yoy_national', 'cpi_yoy_region']
+ylabel = 'Percent Change (%)'
+legend_labels = ['U.S. City Average', 'Division']
+fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
+cpi_plot = rf.save_plot(fig)
+plots_for_pdf['cpi_yoy'] = cpi_plot
+
+### Unemployment
+cols = ['national_unemployment', 'region_unemployment']
+ylabel = 'Rate (%)'
+legend_labels = ['National', 'State']
+fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
+unemploy_plot = rf.save_plot(fig)
+plots_for_pdf['unemployment'] = unemploy_plot
+
+### Traffic
+cols = ['traffic_yoy_national', 'traffic_yoy_regional']
+ylabel = 'Percent Change (%)'
+legend_labels = ['National', 'State']
+fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
+traffic_plot = rf.save_plot(fig)
+plots_for_pdf['traffic'] = traffic_plot
+
+### Gas Prices
+cols = ['gas_national', 'gas_regional']
+ylabel = 'Price ($)'
+legend_labels = ['U.S. City Average', 'Division']
+fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
+gas_plot = rf.save_plot(fig)
+plots_for_pdf['gas'] = gas_plot
+
 pdf_class = pg.PDFPSReporte(
     plot_dict=plots_for_pdf,
     data_dict=data,
@@ -163,6 +194,6 @@ pdf = pdf_class.return_pdf()
 
 rf.save_to_s3(
     bucket_name,
-    f"monthly_report_{data['hub_name'].replace(' ','_')}_site_{site_number}.pdf",
+    f"{data['hub_id']}/{site_number}/reports/monthly_report_{current_month}_{current_year}.pdf",
     pdf,
 )

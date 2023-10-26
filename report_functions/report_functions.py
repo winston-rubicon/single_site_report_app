@@ -16,7 +16,7 @@ data = json.loads(file_content)
 
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
+# filename = "fake_data/6_2023.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 
@@ -46,7 +46,7 @@ color_palette = [
 # Get the month labels for plotting, make sure they are sorted in order
 # this will be essential for ensuring plots are correctly made
 month_year_list = sorted(
-    data["total_wash_counts"].keys(),
+    data["total_wash_count"].keys(),
     key=lambda x: (int(x.split("_")[1]), int(x.split("_")[0])),
 )
 
@@ -88,6 +88,7 @@ def save_to_s3(bucket_name, file_key, pdf):
 def line_plot(col, ylabel, legend_labels=None):
     """
     Plots the data that will be plotted as a line plot function of month for the year leading up to the current month the report is generated.
+    Assumes single column (key), with possibility for categories within this heading depending on legend_labels
     """
     # Create a figure
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -122,6 +123,8 @@ def line_plot(col, ylabel, legend_labels=None):
     ax.yaxis.label.set_fontsize(14)
     ax.set_xlabel(None)
 
+    ax.set_xlim(left=0, right=len(month_year_list)-1)
+
     # Put grid over plot
     ax.grid(which="major", color="#525661", linestyle=(0, (1, 10)), axis="y")
 
@@ -149,6 +152,62 @@ def line_plot(col, ylabel, legend_labels=None):
 
     return fig
 
+
+# Line Plot
+def multi_line_plot(cols, ylabel, legend_labels):
+    """
+    Plots the data that will be plotted as a line plot function of month for the year leading up to the current month the report is generated.
+    Assumes cols is a list of keys so that all data corresponding to each key will be plotted on same axis
+    """
+    # Create a figure
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Loop over keys
+    for i,col in enumerate(cols):
+        ydata = [data[col][month_year] for month_year in month_year_list]
+
+        # Plot the data
+        ax.plot(month_labels, ydata, color=color_palette[i], label=legend_labels[i])
+
+    ax.legend(
+            labels=legend_labels,
+            fontsize=14,
+            prop=font,
+        )
+
+    # Set axis font parameters
+    plt.ylabel(ylabel, color=color_palette[0], fontproperties=font)
+    ax.yaxis.label.set_fontsize(14)
+    ax.set_xlabel(None)
+
+    ax.set_xlim(left=0, right=len(month_year_list)-1)
+
+    # Put grid over plot
+    ax.grid(which="major", color="#525661", linestyle=(0, (1, 10)), axis="y")
+
+    # Add gray border and vertical lines
+    ax.spines["top"].set_color("lightgray"), ax.spines["right"].set_color(
+        "lightgray"
+    ), ax.spines["bottom"].set_color("lightgray"), ax.spines["left"].set_color(
+        "lightgray"
+    )
+    for month in month_labels:
+        ax.axvline(month, color="lightgray", linestyle="-", linewidth=1)
+
+    # For x-ticks
+    for label in ax.xaxis.get_ticklabels():
+        label.set_fontproperties(font)
+        label.set_size(14)  # size you want
+        label.set_rotation(45)  # rotation angle
+
+    # For y-ticks
+    for label in ax.yaxis.get_ticklabels():
+        label.set_fontproperties(font)
+        label.set_size(14)  # size you want
+
+    plt.tight_layout()
+
+    return fig
 
 # Bar Plot
 def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
