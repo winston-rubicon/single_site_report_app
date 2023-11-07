@@ -16,7 +16,7 @@ data = json.loads(file_content)
 
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/6_2023.json"
+# filename = "fake_data/9_2023.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 
@@ -105,6 +105,7 @@ def line_plot(col, ylabel, legend_labels=None):
             labels=legend_labels,
             fontsize=14,
             prop=font,
+            bbox_to_anchor = (1.02,0.5)
         )
 
     else:
@@ -162,9 +163,14 @@ def multi_line_plot(cols, ylabel, legend_labels):
     # Create a figure
     fig, ax = plt.subplots(figsize=(12, 6))
     
-    # Loop over keys
+    # Loop over outer keys
     for i,col in enumerate(cols):
-        ydata = [data[col][month_year] for month_year in month_year_list]
+        ydata = []
+        # Loop over inner keys (month-year typically)
+        # Done this way in case traffic data hasn't been updated
+        month_labels = data[col].keys()
+        for key in month_labels:
+            ydata.append(data[col][key])
 
         # Plot the data
         ax.plot(month_labels, ydata, color=color_palette[i], label=legend_labels[i])
@@ -173,6 +179,7 @@ def multi_line_plot(cols, ylabel, legend_labels):
             labels=legend_labels,
             fontsize=14,
             prop=font,
+            bbox_to_anchor=(1.02,0.5)
         )
 
     # Set axis font parameters
@@ -180,7 +187,7 @@ def multi_line_plot(cols, ylabel, legend_labels):
     ax.yaxis.label.set_fontsize(14)
     ax.set_xlabel(None)
 
-    ax.set_xlim(left=0, right=len(month_year_list)-1)
+    ax.set_xlim(left=0, right=len(month_labels)-1)
 
     # Put grid over plot
     ax.grid(which="major", color="#525661", linestyle=(0, (1, 10)), axis="y")
@@ -219,7 +226,7 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
     ydata0 = [data[cols[0]][month_year] for month_year in month_year_list]
 
     # create fig, ax
-    fig, ax = plt.subplots(figsize=(12, 3))
+    fig, ax = plt.subplots(figsize=(24, 6))
     # Generate bar plot
     width = 0.4 if len(legend_labels) == 2 else 0.8
     plt.bar(
@@ -241,21 +248,22 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
 
     # Axis label properties
     ax.set_ylabel(ylabel, color=color_palette[0], fontproperties=font)
-    ax.yaxis.label.set_fontsize(14)
+    ax.yaxis.label.set_fontsize(20)
     plt.xlabel(None)
 
     ax.set_frame_on(False)
     plt.grid(which="major", color="#525661", linestyle=(0, (1, 10)), axis="y")
-    ax.tick_params(left=False, bottom=False, colors="#525661", labelsize=14)
+    ax.tick_params(left=False, bottom=False, colors="#525661", labelsize=20)
 
     plt.subplots_adjust(right=0.85)
     legend = ax.legend(
         legend_labels,
         loc="center left",
         bbox_to_anchor=(1.02, 0.5),
-        fontsize=14,
         prop=font,
     )
+    for label in legend.get_texts():
+        label.set_fontsize(16)
 
     if len(legend_labels) == 1:
         legend.set_visible(False)
@@ -263,13 +271,13 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
     # For x-ticks
     for label in ax.xaxis.get_ticklabels():
         label.set_fontproperties(font)
-        label.set_size(14)  # size you want
+        label.set_size(20)  # size you want
         label.set_rotation(45)  # rotation angle
 
     # For y-ticks
     for label in ax.yaxis.get_ticklabels():
         label.set_fontproperties(font)
-        label.set_size(14)  # size you want
+        label.set_size(20)  # size you want
 
     plt.tight_layout()
 
@@ -320,7 +328,7 @@ def variable_bar_plot(col, ylabel):
 
 
 # Package Distribution Plots
-def package_distribution_plot(col, title):
+def package_distribution_plot(col, title, num_packages):
     """
     Create ring plots for the desired package breakdown (retail or membership)
     """
@@ -347,15 +355,26 @@ def package_distribution_plot(col, title):
     )
     label.set_fontsize(fontsize=12)
 
-    # Add a legend
-    legend = ax.legend(
-        handles=patches,
-        labels=package_names,
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.25),
-        title=None,
-        prop={"family": font},
-    )
+    # Add a legend, where it goes will depend on the number of packages being plotted
+    # This is passed in in case of differences between mem/retail
+    if num_packages<4:
+        legend = ax.legend(
+            handles=patches,
+            labels=package_names,
+            loc="lower center",
+            bbox_to_anchor=(0.5, -0.25),
+            title=None,
+            prop={"family": font},
+        )
+    else:
+        legend = ax.legend(
+            handles=patches,
+            labels=package_names,
+            loc='lower center',
+            bbox_to_anchor=(0.5, -0.35),
+            title=None,
+            prop={"family": font},
+        )
 
     legend.get_frame().set_facecolor("#f5f5f5")
     legend.get_frame().set_linewidth(0)

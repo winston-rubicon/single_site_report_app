@@ -46,14 +46,18 @@ module "lambda" {
   subnet_ids      = data.aws_subnets.selected.ids
 }
 
+module "lambda_failure_notifications" {
+  source               = "./modules/sns"
+  sns_topic_name       = "single_site_report_topic"
+  email_address        = "winston@rubicon-analytics.com"
+  alarm_name           = "single_site_report_alarm"
+  lambda_function_name = module.lambda.lambda_function_name
+}
+
 resource "aws_sqs_queue" "single_site_report_queue" {
   name                      = "single_site_report_queue"
   delay_seconds             = 5
   max_message_size          = 2048
   message_retention_seconds = 86400
   receive_wait_time_seconds = 5
-}
-
-resource "aws_sns_topic" "single_site_report_topic" {
-  name = "single_site_report-topic"
 }

@@ -384,7 +384,7 @@ class PDFPSReporte:
 
         # Build
         self.pdf = BytesIO()
-        self.doc = SimpleDocTemplate(self.pdf, pagesize=letter)
+        self.doc = SimpleDocTemplate(self.pdf, pagesize=letter, bottomMargin=0)
         self.doc.multiBuild(self.elements, canvasmaker=self.custom_wrapper)
         self.pdf.seek(0)
 
@@ -510,11 +510,11 @@ class PDFPSReporte:
         self.img_paragraph_table(
             plot=plots[0], plot_title=plot_titles[0], box_text=first_box
         )
-        self.elements.append(Spacer(1, 10))
+        self.elements.append(Spacer(1, 40))
         self.img_paragraph_table(
             plot=plots[1], plot_title=plot_titles[1], box_text=second_box
         )
-        self.elements.append(Spacer(1, 30))
+        self.elements.append(Spacer(1, 20))
         para = Paragraph(
             lower_box,
             ParagraphStyle(
@@ -540,6 +540,7 @@ class PDFPSReporte:
                 ("TEXTCOLOR", (0, 0), (-1, -1), self.navy),
                 ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 14),
+                ("ALIGN", (0, 0), (-1, 0), "CENTER"),
             ]
         )
         plot = Image(
@@ -551,7 +552,7 @@ class PDFPSReporte:
         table.setStyle(table_style)
         self.elements.append(table)
 
-        self.elements.append(Spacer(1, 20))
+        self.elements.append(Spacer(1, 40))
 
         # Set text for average membership rpc
         mem_rpc = round(self.data["ytd_avg_mem_rpc"], 2)
@@ -661,11 +662,12 @@ class PDFPSReporte:
                 [
                     ("TEXTCOLOR", (0, 0), (0, -1), self.navy),
                     ("TEXTCOLOR", (1, 0), (1, -1), self.cobalt),
-                    ("ALIGN", (1, 0), (1, -1), "CENTER"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
                     ("FONTSIZE", (0, 0), (0, -1), 12),
                     ("SPAN", (2, 0), (2, -1)),
+                    ("ROWHEIGHT", (0, 2), (-1, 2), 120),
                 ]
             )
         )
@@ -715,11 +717,11 @@ class PDFPSReporte:
         self.elements.append(Spacer(1, 10))
         # Simple table with index score on left, text with numbers on right
         index_img = Image(
-            self.plot_dict["wash_index_score"], width=3.25 * inch, height=2.0 * inch
+            self.plot_dict["wash_index_score"], width=3.25 * inch, height=2.25 * inch
         )
         predicted_counts = self.data["wash_index_score"]["predicted_counts"]
         actual_counts = self.data["wash_index_score"]["actual_counts"]
-        text = f"""<font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Projected Wash Count</font><br/>
+        text = f"""<br/><font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Projected Wash Count</font><br/>
 <font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">{predicted_counts}</font><br/><br/>
 <font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Actual Wash Count</font><br/>
 <font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">{actual_counts}</font>"""
@@ -758,7 +760,7 @@ class PDFPSReporte:
             plot_height=2.75 * inch,
             box_text=optimal_text,
         )
-        self.elements.append(Spacer(1, 10))
+        self.elements.append(Spacer(1, 30))
         self.img_paragraph_table(
             plot=self.plot_dict["washes_per_optimal_day"],
             plot_title="Washes Per Optimal Car Wash Day",
@@ -777,6 +779,7 @@ class PDFPSReporte:
                 ("TEXTCOLOR", (0, 0), (-1, -1), self.navy),
                 ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 14),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER")
             ]
         )
         plot = Image(
@@ -820,10 +823,10 @@ class PDFPSReporte:
               </font><br/>
             """
         self.img_blue_textbox_below(
-            table_title, self.plot_dict["cpi_yoy"], cpi_text, img_height=2.7 * inch
+            table_title, self.plot_dict["cpi_yoy"], cpi_text, img_height=2.85 * inch
         )
 
-        self.elements.append(Spacer(1, 10))
+        self.elements.append(Spacer(1, 20))
 
         # Now Unemployment
         table_title = "Unemployment Rate"
@@ -835,8 +838,10 @@ class PDFPSReporte:
               </font><br/>
             """
         self.img_blue_textbox_below(
-            table_title, self.plot_dict["unemployment"], u_text, img_height=2.7 * inch
+            table_title, self.plot_dict["unemployment"], u_text, img_height=2.85 * inch
         )
+
+        self.elements.append(PageBreak())
 
     def traffic_page(self):
         # First is miles traveled information
@@ -849,23 +854,25 @@ class PDFPSReporte:
               </font><br/>
             """
         self.img_blue_textbox_below(
-            table_title, self.plot_dict["traffic"], traffic_text, img_height=2.7 * inch
+            table_title, self.plot_dict["traffic"], traffic_text, img_height=2.85 * inch
         )
 
-        self.elements.append(Spacer(1, 10))
+        self.elements.append(Spacer(1, 20))
 
         # Gas Prices
         table_title = "Monthly Unleaded Standard Gas Price"
         gas_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Gas Prices</font><br/>
             <font face="AtlasGrotesk" size=10>
-            State average gas prices saw a change of {round(self.data['gas_mom_regional'],1)}% compared to last month, going to {round(self.data['gas_regional'][self.current_year_month],1)}.
-             This is {round(self.data['unemploy_pct_ch_reg_nat'],1)}% different from the U.S. city average of {round(self.data['gas_national'][self.current_year_month])}.
+            State average gas prices saw a change of {round(self.data['gas_mom_regional'],1)}% compared to last month, going to ${round(self.data['gas_regional'][self.current_year_month],2)}.
+             This is {round(self.data['unemploy_pct_ch_reg_nat'],1)}% different from the U.S. city average of ${round(self.data['gas_national'][self.current_year_month],2)}.
               </font><br/>
             """
         self.img_blue_textbox_below(
-            table_title, self.plot_dict["gas"], gas_text, img_height=2.7 * inch
+            table_title, self.plot_dict["gas"], gas_text, img_height=2.85 * inch
         )
+
+        self.elements.append(PageBreak())
 
     def return_pdf(self):
         return self.pdf

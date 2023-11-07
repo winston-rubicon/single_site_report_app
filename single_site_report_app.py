@@ -15,7 +15,7 @@ file_content = s3_object['Body'].read().decode('utf-8')
 data = json.loads(file_content)
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/6_2023.json"
+# filename = "fake_data/9_2023.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 
@@ -111,10 +111,15 @@ fig = rf.line_plot(col=col, ylabel=ylabel)
 washes_per_optimal_day_plot = rf.save_plot(fig)
 plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
 
+##### Package Distributions
+if len(data['retail_package_distribution'].keys()) >= len(data['membership_package_distribution'].keys()):
+    num_packages = len(data['retail_package_distribution'].keys())
+else:
+    num_packages = len(data['membership_package_distribution'].keys())
 ### Retail Package Distribution
 col = "retail_package_distribution"
 title = "Retail Package\nDistribution"
-fig = rf.package_distribution_plot(col=col, title=title)
+fig = rf.package_distribution_plot(col=col, title=title, num_packages=num_packages)
 retail_package_plot = rf.save_plot(fig)
 plots_for_pdf["retail_package_distribution"] = retail_package_plot
 
@@ -129,7 +134,7 @@ plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_pl
 ### Membership Package Distribution
 col = "membership_package_distribution"
 title = "Active Membership \nDistribution"
-fig = rf.package_distribution_plot(col=col, title=title)
+fig = rf.package_distribution_plot(col=col, title=title, num_packages=num_packages)
 membership_package_plot = rf.save_plot(fig)
 plots_for_pdf["membership_package_distribution"] = membership_package_plot
 
