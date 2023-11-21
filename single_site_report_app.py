@@ -6,18 +6,19 @@ import plotly.io as pio
 from io import BytesIO
 import os
 import boto3
+import us
 
-# filename = os.environ.get('FILENAME')
-# bucket_name = os.environ.get('BUCKET_NAME')
-# s3 = boto3.client('s3')
-# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-# file_content = s3_object['Body'].read().decode('utf-8')
-# data = json.loads(file_content)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.loads(file_content)
 
-bucket_name = "ncs-washindex-single-site-reports-815867481426"
-filename = "fake_data/10_2023.json"
-with open(filename, "r") as f:
-    data = json.load(f)
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
 
 site_number = data["site_number"]
 
@@ -25,6 +26,11 @@ site_number = data["site_number"]
 month_year = filename.split("/")[-1].split(".")[0]
 current_month = int(month_year.split("_")[0])
 current_year = int(month_year.split("_")[1])
+
+# Regional info
+state = us.states.lookup(data['site_state'])
+division = f"{data['division'][f'{current_month}_{current_year}']} Division"
+region = data['region'][f'{current_month}_{current_year}']
 
 # Dictionary that will be used in pdf generation code
 plots_for_pdf = {}
@@ -159,7 +165,7 @@ plots_for_pdf["wash_index_score"] = wash_index_score
 ### CPI YoY
 cols = ['cpi_yoy_national', 'cpi_yoy_region']
 ylabel = 'Percent Change (%)'
-legend_labels = ['U.S. City Average', 'Division']
+legend_labels = ['U.S. City Average', division]
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 cpi_plot = rf.save_plot(fig)
 plots_for_pdf['cpi_yoy'] = cpi_plot
@@ -167,7 +173,7 @@ plots_for_pdf['cpi_yoy'] = cpi_plot
 ### Unemployment
 cols = ['national_unemployment', 'region_unemployment']
 ylabel = 'Rate (%)'
-legend_labels = ['National', 'State']
+legend_labels = ['National', state]
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 unemploy_plot = rf.save_plot(fig)
 plots_for_pdf['unemployment'] = unemploy_plot
@@ -175,7 +181,7 @@ plots_for_pdf['unemployment'] = unemploy_plot
 ### Traffic
 cols = ['traffic_yoy_national', 'traffic_yoy_regional']
 ylabel = 'Percent Change (%)'
-legend_labels = ['National', 'State']
+legend_labels = ['National', state]
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 traffic_plot = rf.save_plot(fig)
 plots_for_pdf['traffic'] = traffic_plot
@@ -183,7 +189,7 @@ plots_for_pdf['traffic'] = traffic_plot
 ### Gas Prices
 cols = ['gas_national', 'gas_regional']
 ylabel = 'Price ($)'
-legend_labels = ['U.S. City Average', 'Division']
+legend_labels = ['U.S. City Average', division]
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 gas_plot = rf.save_plot(fig)
 plots_for_pdf['gas'] = gas_plot

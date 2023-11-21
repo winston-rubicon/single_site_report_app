@@ -1,11 +1,11 @@
 {
-    "hub_id": 10001,
-    "hub_name": "H2GO Car Wash",
+    "hub_id": 10000,
+    "hub_name": "Car Wash",
     "site_number": 1,
-    "site_address": "6491 Westminster Blvd.",
-    "site_city": "Westminster",
+    "site_address": "213 Elm St.",
+    "site_city": "Shelbyville",
     "site_state": "CA",
-    "site_zip": "92683",
+    "site_zip": "99999",
     "membership_wash_count": {
         "10_2022": 10977,
         "11_2022": 8506,

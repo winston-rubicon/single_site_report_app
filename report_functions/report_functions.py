@@ -7,18 +7,18 @@ import boto3
 import os
 import json
 
-# filename = os.environ.get('FILENAME')
-# bucket_name = os.environ.get('BUCKET_NAME')
-# s3 = boto3.client('s3')
-# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-# file_content = s3_object['Body'].read().decode('utf-8')
-# data = json.loads(file_content)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.loads(file_content)
 
 
-bucket_name = "ncs-washindex-single-site-reports-815867481426"
-filename = "fake_data/10_2023.json"
-with open(filename, "r") as f:
-    data = json.load(f)
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
 
 
 # Register AtlasGrotesk font
@@ -113,12 +113,13 @@ def line_plot(col, ylabel, legend_labels=None):
             ydata = [data[col][label][month_year] for month_year in this_month_year_list]
             # Plot the data
             ax.plot(this_month_labels, ydata, color=color_palette[i], label=col)
-        ax.legend(
+        legend = ax.legend(
             labels=legend_labels,
-            fontsize=14,
             prop=font,
             bbox_to_anchor = (1.02,0.5)
         )
+        for label in legend.get_texts():
+            label.set_fontsize(16)
         ax.set_xlim(left=0, right=len(this_month_year_list)-1)
 
     else:
@@ -265,7 +266,7 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
     ydata0 = [data[cols[0]][month_year] for month_year in month_year_list]
 
     # create fig, ax
-    fig, ax = plt.subplots(figsize=(24, 6))
+    fig, ax = plt.subplots(figsize=(24, 9))
     # Generate bar plot
     width = 0.4 if len(legend_labels) == 2 else 0.8
     plt.bar(
@@ -287,22 +288,22 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
 
     # Axis label properties
     ax.set_ylabel(ylabel, color=color_palette[0], fontproperties=font)
-    ax.yaxis.label.set_fontsize(20)
+    ax.yaxis.label.set_fontsize(28)
     plt.xlabel(None)
 
     ax.set_frame_on(False)
     plt.grid(which="major", color="#525661", linestyle=(0, (1, 10)), axis="y")
-    ax.tick_params(left=False, bottom=False, colors="#525661", labelsize=20)
+    ax.tick_params(left=False, bottom=False, colors="#525661", labelsize=24)
 
     plt.subplots_adjust(right=0.85)
     legend = ax.legend(
         legend_labels,
         loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
+        bbox_to_anchor=(1.01, 0.5),
         prop=font,
     )
     for label in legend.get_texts():
-        label.set_fontsize(20)
+        label.set_fontsize(24)
 
     if len(legend_labels) == 1:
         legend.set_visible(False)
@@ -310,13 +311,13 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
     # For x-ticks
     for label in ax.xaxis.get_ticklabels():
         label.set_fontproperties(font)
-        label.set_size(20)  # size you want
+        label.set_size(28)  # size you want
         label.set_rotation(45)  # rotation angle
 
     # For y-ticks
     for label in ax.yaxis.get_ticklabels():
         label.set_fontproperties(font)
-        label.set_size(20)  # size you want
+        label.set_size(24)  # size you want
 
     plt.tight_layout()
 
