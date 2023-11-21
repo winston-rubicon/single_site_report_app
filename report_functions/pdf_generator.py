@@ -468,30 +468,30 @@ class PDFPSReporte:
             first_box_text = [f"Site {self.site_number}: {avg_vol:,}"]
             first_box = self.bulleted_text(first_box_title, first_box_text)
 
-            avg_rev = self.data["ytd_avg_revenue"]
-            second_box_title = "Monthly Average Revenue"
+            avg_rev = self.data["ytd_avg_rpc"]
+            second_box_title = "Monthly Average Revenue Per Car"
             second_box_text = [f"Site {self.site_number}: ${avg_rev:,}"]
             second_box = self.bulleted_text(second_box_title, second_box_text)
 
             mom_vol = self.data["mom_washes"]
-            mom_rev = self.data["mom_revenue"]
+            mom_rev = self.data["mom_rpc"]
 
             lower_box = f"""
             <font face="AtlasGrotesk-Bold" size=14>Insights</font><br/>
             <font face="AtlasGrotesk" size=10>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total wash volume changed by {round(mom_vol, 1)}% compared to last month</font><br/>
             <font face="AtlasGrotesk" size=10>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Total revenue changed by {round(mom_rev, 1)}%</font><br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RPC changed by {round(mom_rev, 1)}%</font><br/>
             """
 
         elif page == 5:
             avg_churn = self.data["ytd_avg_churn"]
-            first_box_title = "Churn Rate"
+            first_box_title = "Monthly Average Churn Rate"
             first_box_text = [f"Site {self.site_number}: {avg_churn}%"]
             first_box = self.bulleted_text(first_box_title, first_box_text)
 
             avg_capture = self.data["ytd_avg_capture"]
-            second_box_title = "Capture Rate"
+            second_box_title = "Monthly Average Capture Rate"
             second_box_text = [f"Site {self.site_number}: {avg_capture}%"]
             second_box = self.bulleted_text(second_box_title, second_box_text)
 
@@ -533,7 +533,7 @@ class PDFPSReporte:
         self.elements.append(PageBreak())
 
     def membership_vs_retail(self):
-        table_title = "Membership Distribution"
+        table_title = "Wash Distribution"
         table_style = TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -683,8 +683,8 @@ class PDFPSReporte:
         min_day_count = self.data["popular_days_extrema"][min_day]
         days_text = f"""
         <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Most/Least Popular Days on Average in {self.month_name} {self.current_year}</font><br/><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{max_day}: {round(max_day_count)}</font><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{min_day}: {round(min_day_count)}</font><br/>
+        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{max_day}: {round(max_day_count):,}</font><br/>
+        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{min_day}: {round(min_day_count):,}</font><br/>
         """
         days_text = Paragraph(days_text, self.grey_textbox)
 
@@ -694,8 +694,8 @@ class PDFPSReporte:
         min_hour_count = self.data["popular_hours_extrema"][min_hour]
         hours_text = f"""
         <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Most/Least Popular Hours on Average in {self.month_name} {self.current_year}</font><br/><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{max_hour}: {round(max_hour_count)}</font><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{min_hour}: {round(min_hour_count)}</font><br/>
+        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{max_hour}: {round(max_hour_count):,}</font><br/>
+        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{min_hour}: {round(min_hour_count):,}</font><br/>
         """
         hours_text = Paragraph(hours_text, self.grey_textbox)
 
@@ -722,9 +722,9 @@ class PDFPSReporte:
         predicted_counts = self.data["wash_index_score"]["predicted_counts"]
         actual_counts = self.data["wash_index_score"]["actual_counts"]
         text = f"""<br/><font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Projected Wash Count</font><br/>
-<font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">{predicted_counts}</font><br/><br/>
+<font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">{predicted_counts:,}</font><br/><br/>
 <font face="AtlasGrotesk-Bold" size=10 textcolor="#{self.hex_navy}">Actual Wash Count</font><br/>
-<font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">{actual_counts}</font>"""
+<font face="AtlasGrotesk-Bold" size=14 textcolor="#{self.hex_cobalt}">{actual_counts:,}</font>"""
         para = Paragraph(text, ParagraphStyle("space_after", leading=18))
         table = Table(
             [["", index_img, "", para]],
@@ -819,7 +819,7 @@ class PDFPSReporte:
             <font face="AtlasGrotesk" size=10>
             The regional CPI YoY in {self.month_name} {self.current_year} is {current_month_region_cpi}%.
              This is a change of {round(self.data['cpi_mom_region'],1)}% compared to last month,
-              and a {round(self.data['cpi_pct_ch_reg_nat'],1)}% difference from the national YoY.
+              and a {round(self.data['cpi_pct_ch_reg_nat'],1)}% difference from the national CPI YoY.
               </font><br/>
             """
         self.img_blue_textbox_below(
@@ -830,11 +830,12 @@ class PDFPSReporte:
 
         # Now Unemployment
         table_title = "Unemployment Rate"
+        greater_less = 'greater' if self.data['unemploy_pct_ch_reg_nat']>0 else 'less'
         u_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Unemployment Rate</font><br/>
             <font face="AtlasGrotesk" size=10>
             {self.month_name} {self.current_year} saw a change of {round(self.data['unemploy_mom_region'],1)}% compared to last month.
-             This month's state unemployment is {round(self.data['unemploy_pct_ch_reg_nat'],1)}% different from the national rate.
+             This month's state unemployment is {abs(round(self.data['unemploy_pct_ch_reg_nat'],1))}% {greater_less} than the national rate.
               </font><br/>
             """
         self.img_blue_textbox_below(
@@ -846,11 +847,12 @@ class PDFPSReporte:
     def traffic_page(self):
         # First is miles traveled information
         table_title = "Monthly Miles Traveled Year-Over-Year Change"
+        greater_less = 'greater' if self.data['traffic_pct_ch_reg_nat']>0 else 'less'
         traffic_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Consumer Price Index</font><br/>
             <font face="AtlasGrotesk" size=10>
             The state's miles traveled  YoY changed {round(self.data['traffic_mom_regional'])}% compared to last month, and is
-             {round(self.data['traffic_pct_ch_reg_nat'],1)}% different from the national YoY.
+             {abs(round(self.data['traffic_pct_ch_reg_nat'],1))}% {greater_less} than the national YoY.
               </font><br/>
             """
         self.img_blue_textbox_below(
@@ -861,11 +863,12 @@ class PDFPSReporte:
 
         # Gas Prices
         table_title = "Monthly Unleaded Standard Gas Price"
+        greater_less = 'greater' if self.data['gas_pct_ch_reg_nat']>0 else 'less'
         gas_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Gas Prices</font><br/>
             <font face="AtlasGrotesk" size=10>
             State average gas prices saw a change of {round(self.data['gas_mom_regional'],1)}% compared to last month, going to ${round(self.data['gas_regional'][self.current_year_month],2)}.
-             This is {round(self.data['unemploy_pct_ch_reg_nat'],1)}% different from the U.S. city average of ${round(self.data['gas_national'][self.current_year_month],2)}.
+             This is {abs(round(self.data['gas_pct_ch_reg_nat'],1))}% {greater_less} than the U.S. city average of ${round(self.data['gas_national'][self.current_year_month],2)}.
               </font><br/>
             """
         self.img_blue_textbox_below(

@@ -7,18 +7,18 @@ import boto3
 import os
 import json
 
-filename = os.environ.get('FILENAME')
-bucket_name = os.environ.get('BUCKET_NAME')
-s3 = boto3.client('s3')
-s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-file_content = s3_object['Body'].read().decode('utf-8')
-data = json.loads(file_content)
+# filename = os.environ.get('FILENAME')
+# bucket_name = os.environ.get('BUCKET_NAME')
+# s3 = boto3.client('s3')
+# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+# file_content = s3_object['Body'].read().decode('utf-8')
+# data = json.loads(file_content)
 
 
-# bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/9_2023.json"
-# with open(filename, "r") as f:
-#     data = json.load(f)
+bucket_name = "ncs-washindex-single-site-reports-815867481426"
+filename = "fake_data/10_2023.json"
+with open(filename, "r") as f:
+    data = json.load(f)
 
 
 # Register AtlasGrotesk font
@@ -96,35 +96,59 @@ def line_plot(col, ylabel, legend_labels=None):
     # If legend labels exist loop over all labels to be plotted
     if legend_labels is not None:
         for i, label in enumerate(data[col].keys()):
+            # get the possibly unique month_year_list
+            this_month_year_list = sorted(
+                                    data[col][label].keys(),
+                                    key=lambda x: (int(x.split("_")[1]), int(x.split("_")[0])),
+                                )
+            this_month_labels = []
+            for date in this_month_year_list:
+                month, year = date.split("_")
+                month_name = calendar.month_abbr[int(month)]
+                if month_name == "Jan":
+                    this_month_labels.append(f"{month_name} {current_year}")
+                else:
+                    this_month_labels.append(month_name)
             # First get the appropriate y data
-            ydata = [data[col][label][month_year] for month_year in month_year_list]
-
+            ydata = [data[col][label][month_year] for month_year in this_month_year_list]
             # Plot the data
-            ax.plot(month_labels, ydata, color=color_palette[i], label=col)
+            ax.plot(this_month_labels, ydata, color=color_palette[i], label=col)
         ax.legend(
             labels=legend_labels,
             fontsize=14,
             prop=font,
             bbox_to_anchor = (1.02,0.5)
         )
+        ax.set_xlim(left=0, right=len(this_month_year_list)-1)
 
     else:
-        ydata = [data[col][month_year] for month_year in month_year_list]
+        this_month_year_list = sorted(
+                                    data[col].keys(),
+                                    key=lambda x: (int(x.split("_")[1]), int(x.split("_")[0])),
+                                )
+        this_month_labels = []
+        for date in this_month_year_list:
+            month, year = date.split("_")
+            month_name = calendar.month_abbr[int(month)]
+            if month_name == "Jan":
+                this_month_labels.append(f"{month_name} {current_year}")
+            else:
+                this_month_labels.append(month_name)
+        ydata = [data[col][month_year] for month_year in this_month_year_list]
 
         # Plot the data
-        ax.plot(month_labels, ydata, color=color_palette[0])
+        ax.plot(this_month_labels, ydata, color=color_palette[0])
 
         # Set axis font parameters
         plt.ylabel(ylabel, color=color_palette[0], fontproperties=font)
         ax.yaxis.label.set_fontsize(14)
         ax.set_xlabel(None)
+        ax.set_xlim(left=0, right=len(this_month_year_list)-1)
 
     # Set axis font parameters
     plt.ylabel(ylabel, color=color_palette[0], fontproperties=font)
     ax.yaxis.label.set_fontsize(14)
     ax.set_xlabel(None)
-
-    ax.set_xlim(left=0, right=len(month_year_list)-1)
 
     # Put grid over plot
     ax.grid(which="major", color="#525661", linestyle=(0, (1, 10)), axis="y")
@@ -168,23 +192,38 @@ def multi_line_plot(cols, ylabel, legend_labels):
         ydata = []
         # Loop over inner keys (month-year typically)
         # Done this way in case traffic data hasn't been updated
-        month_labels = data[col].keys()
-        for key in month_labels:
+        month_year_list = sorted(
+            data[col].keys(),
+            key=lambda x: (int(x.split("_")[1]), int(x.split("_")[0])),
+        )
+        # month_labels = data[col].keys()
+        for key in month_year_list:
             ydata.append(data[col][key])
-
+        # Make pretty labels
+        month_labels = []
+        for date in month_year_list:
+            month, year = date.split("_")
+            month_name = calendar.month_abbr[int(month)]
+            if month_name == "Jan":
+                month_labels.append(f"{month_name} {current_year}")
+            else:
+                month_labels.append(month_name)
         # Plot the data
         ax.plot(month_labels, ydata, color=color_palette[i], label=legend_labels[i])
 
-    ax.legend(
+    legend = ax.legend(
             labels=legend_labels,
             fontsize=14,
             prop=font,
             bbox_to_anchor=(1.02,0.5)
         )
+    
+    for label in legend.get_texts():
+        label.set_fontsize(16)
 
     # Set axis font parameters
     plt.ylabel(ylabel, color=color_palette[0], fontproperties=font)
-    ax.yaxis.label.set_fontsize(14)
+    ax.yaxis.label.set_fontsize(16)
     ax.set_xlabel(None)
 
     ax.set_xlim(left=0, right=len(month_labels)-1)
@@ -263,7 +302,7 @@ def year_bar_plot(cols, ylabel, legend_labels=["blah"]):
         prop=font,
     )
     for label in legend.get_texts():
-        label.set_fontsize(16)
+        label.set_fontsize(20)
 
     if len(legend_labels) == 1:
         legend.set_visible(False)
