@@ -7,18 +7,18 @@ import boto3
 import os
 import json
 
-filename = os.environ.get('FILENAME')
-bucket_name = os.environ.get('BUCKET_NAME')
-s3 = boto3.client('s3')
-s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-file_content = s3_object['Body'].read().decode('utf-8')
-data = json.loads(file_content)
+# filename = os.environ.get('FILENAME')
+# bucket_name = os.environ.get('BUCKET_NAME')
+# s3 = boto3.client('s3')
+# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+# file_content = s3_object['Body'].read().decode('utf-8')
+# data = json.loads(file_content)
 
 
-# bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
-# with open(filename, "r") as f:
-#     data = json.load(f)
+bucket_name = "ncs-washindex-single-site-reports-815867481426"
+filename = "fake_data/10_2023.json"
+with open(filename, "r") as f:
+    data = json.load(f)
 
 
 # Register AtlasGrotesk font
@@ -60,8 +60,10 @@ prev_year = None
 for date in month_year_list:
     month, year = date.split("_")
     month_name = calendar.month_abbr[int(month)]
-    if month_name == "Jan":
-        month_labels.append(f"{month_name} {current_year}")
+    if int(month) == current_month:
+        month_labels.append(f"{month_name} {year}")
+    elif month_name == "Jan":
+        month_labels.append(f"{month_name} {year}")
     else:
         month_labels.append(month_name)
 
@@ -105,8 +107,10 @@ def line_plot(col, ylabel, legend_labels=None):
             for date in this_month_year_list:
                 month, year = date.split("_")
                 month_name = calendar.month_abbr[int(month)]
-                if month_name == "Jan":
-                    this_month_labels.append(f"{month_name} {current_year}")
+                if int(month)==current_month:
+                    this_month_labels.append(f"{month_name} {year}")
+                elif month_name == "Jan":
+                    this_month_labels.append(f"{month_name} {year}")
                 else:
                     this_month_labels.append(month_name)
             # First get the appropriate y data
@@ -131,8 +135,10 @@ def line_plot(col, ylabel, legend_labels=None):
         for date in this_month_year_list:
             month, year = date.split("_")
             month_name = calendar.month_abbr[int(month)]
-            if month_name == "Jan":
-                this_month_labels.append(f"{month_name} {current_year}")
+            if int(month)==current_month:
+                this_month_labels.append(f"{month_name} {year}")
+            elif month_name == "Jan":
+                this_month_labels.append(f"{month_name} {year}")
             else:
                 this_month_labels.append(month_name)
         ydata = [data[col][month_year] for month_year in this_month_year_list]
@@ -205,8 +211,10 @@ def multi_line_plot(cols, ylabel, legend_labels):
         for date in month_year_list:
             month, year = date.split("_")
             month_name = calendar.month_abbr[int(month)]
-            if month_name == "Jan":
-                month_labels.append(f"{month_name} {current_year}")
+            if int(month)==current_month:
+                month_labels.append(f"{month_name} {year}")
+            elif month_name == "Jan":
+                month_labels.append(f"{month_name} {year}")
             else:
                 month_labels.append(month_name)
         # Plot the data
@@ -368,17 +376,18 @@ def variable_bar_plot(col, ylabel):
 
 
 # Package Distribution Plots
-def package_distribution_plot(col, title, num_packages):
+def package_distribution_plot(col, title, num_packages, color_dict):
     """
     Create ring plots for the desired package breakdown (retail or membership)
     """
     package_names = data[col].keys()
+    colors = [color_dict[package_name] for package_name in package_names]
     package_data = data[col].values()
 
     # Now you can plot your pie chart as a donut plot
     fig, ax = plt.subplots()
     p_labels = ["{:.1f}%".format(data[col][package]) for package in package_names]
-    patches, texts = ax.pie(package_data, labels=p_labels, colors=color_palette)
+    patches, texts = ax.pie(package_data, labels=p_labels, colors=colors)
 
     # Draw a white circle at the center to create the "donut hole" effect
     centre_circle = plt.Circle((0, 0), 0.70, fc="white")

@@ -8,17 +8,17 @@ import os
 import boto3
 import us
 
-filename = os.environ.get('FILENAME')
-bucket_name = os.environ.get('BUCKET_NAME')
-s3 = boto3.client('s3')
-s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-file_content = s3_object['Body'].read().decode('utf-8')
-data = json.loads(file_content)
+# filename = os.environ.get('FILENAME')
+# bucket_name = os.environ.get('BUCKET_NAME')
+# s3 = boto3.client('s3')
+# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+# file_content = s3_object['Body'].read().decode('utf-8')
+# data = json.loads(file_content)
 
-# bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
-# with open(filename, "r") as f:
-#     data = json.load(f)
+bucket_name = "ncs-washindex-single-site-reports-815867481426"
+filename = "fake_data/10_2023.json"
+with open(filename, "r") as f:
+    data = json.load(f)
 
 site_number = data["site_number"]
 
@@ -35,21 +35,38 @@ region = data['region'][f'{current_month}_{current_year}']
 # Dictionary that will be used in pdf generation code
 plots_for_pdf = {}
 
+# Brand color palette
+color_palette = [
+    "#0b75e1",
+    "#003264",
+    "#87cefa",
+    "#ffcb00",
+    "#e7af50",
+    "#c70039",
+    "#800080",
+    "#006400",
+    "#8b4513",
+    "#ffb6c1",
+    "#e6e6fa",
+    "#00A000",
+]
+
 ###----- Generating figures, storing in buffers in dictionary
 
 ### Wash Counts
 # Define column, ylabel to be used for plot
 col = "total_wash_count"
 ylabel = "Number of Washes"
+legend_labels = [f'Site {site_number}', 'Hub Average']
 # Plot, save fig to buffer and put in dictionary
-fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 wash_counts_fig = rf.save_plot(fig)
 plots_for_pdf["total_wash_counts"] = wash_counts_fig
 
 ### Revenue Per Car
 col = "revenue_per_car"
 ylabel = "Revenue Per Car ($)"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 rpc_fig = rf.save_plot(fig)
 plots_for_pdf["revenue_per_car"] = rpc_fig
 
@@ -64,28 +81,28 @@ plots_for_pdf["retail_membership_distribution"] = retail_memberships_plot
 ### Membership RPC
 col = "membership_rpc"
 ylabel = "Average Revenue ($)"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 membership_rpc_plot = rf.save_plot(fig)
 plots_for_pdf["membership_rpc"] = membership_rpc_plot
 
 ### Retail RPC
 col = "retail_rpc"
 ylabel = "Average Revenue ($)"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 retail_rpc_plot = rf.save_plot(fig)
 plots_for_pdf["retail_rpc"] = retail_rpc_plot
 
 ### Churn Rate
 col = "churn_rate"
 ylabel = "Churn %"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 churn_plot = rf.save_plot(fig)
 plots_for_pdf["churn_rate"] = churn_plot
 
 ### Capture Rate
 col = "capture_rate"
 ylabel = "Capture %"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 capture_plot = rf.save_plot(fig)
 plots_for_pdf["capture_rate"] = capture_plot
 
@@ -120,12 +137,14 @@ plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
 ##### Package Distributions
 if len(data['retail_package_distribution'].keys()) >= len(data['membership_package_distribution'].keys()):
     num_packages = len(data['retail_package_distribution'].keys())
+    color_dict = dict(zip(data['retail_package_distribution'].keys(), color_palette))
 else:
     num_packages = len(data['membership_package_distribution'].keys())
+    color_dict = dict(zip(data['membership_package_distribution'].keys(), color_palette))
 ### Retail Package Distribution
 col = "retail_package_distribution"
 title = "Retail Package\nDistribution"
-fig = rf.package_distribution_plot(col=col, title=title, num_packages=num_packages)
+fig = rf.package_distribution_plot(col=col, title=title, num_packages=num_packages, color_dict=color_dict)
 retail_package_plot = rf.save_plot(fig)
 plots_for_pdf["retail_package_distribution"] = retail_package_plot
 
@@ -140,7 +159,7 @@ plots_for_pdf["retail_monthly_package_distribution"] = retail_monthly_package_pl
 ### Membership Package Distribution
 col = "membership_package_distribution"
 title = "Active Membership \nDistribution"
-fig = rf.package_distribution_plot(col=col, title=title, num_packages=num_packages)
+fig = rf.package_distribution_plot(col=col, title=title, num_packages=num_packages, color_dict=color_dict)
 membership_package_plot = rf.save_plot(fig)
 plots_for_pdf["membership_package_distribution"] = membership_package_plot
 

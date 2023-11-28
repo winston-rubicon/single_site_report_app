@@ -464,12 +464,12 @@ class PDFPSReporte:
     def two_plot_box_below_page(self, plots, plot_titles, text="Insights", page=2):
         if page == 2:
             avg_vol = self.data["ytd_avg_washes"]
-            first_box_title = "YTD Average Volume"
+            first_box_title = "12 Month Average Volume"
             first_box_text = [f"Site {self.site_number}: {avg_vol:,}"]
             first_box = self.bulleted_text(first_box_title, first_box_text)
 
             avg_rev = self.data["ytd_avg_rpc"]
-            second_box_title = "Monthly Average Revenue Per Car"
+            second_box_title = "12 Month Average Revenue Per Car"
             second_box_text = [f"Site {self.site_number}: ${avg_rev:,}"]
             second_box = self.bulleted_text(second_box_title, second_box_text)
 
@@ -486,12 +486,12 @@ class PDFPSReporte:
 
         elif page == 5:
             avg_churn = self.data["ytd_avg_churn"]
-            first_box_title = "Monthly Average Churn Rate"
+            first_box_title = "12 Month Average Churn Rate"
             first_box_text = [f"Site {self.site_number}: {avg_churn}%"]
             first_box = self.bulleted_text(first_box_title, first_box_text)
 
             avg_capture = self.data["ytd_avg_capture"]
-            second_box_title = "Monthly Average Capture Rate"
+            second_box_title = "12 Month Average Capture Rate"
             second_box_text = [f"Site {self.site_number}: {avg_capture}%"]
             second_box = self.bulleted_text(second_box_title, second_box_text)
 
@@ -556,7 +556,7 @@ class PDFPSReporte:
 
         # Set text for average membership rpc
         mem_rpc = round(self.data["ytd_avg_mem_rpc"], 2)
-        title = "YTD Average Membership RPC"
+        title = "12 Month Average Membership RPC"
         text = [f"Site {self.site_number}: ${mem_rpc}"]
         bullets = self.bulleted_text(title, text)
 
@@ -571,7 +571,7 @@ class PDFPSReporte:
 
         # Set text for average retail rpc
         retail_rpc = round(self.data["ytd_avg_retail_rpc"], 2)
-        title = "Quarter Average Retail RPC"
+        title = "12 Month Average Retail RPC"
         text = [f"Site {self.site_number}: ${retail_rpc}"]
         bullets = self.bulleted_text(title, text)
 
