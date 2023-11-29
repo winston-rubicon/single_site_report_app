@@ -8,17 +8,17 @@ import os
 import boto3
 import us
 
-# filename = os.environ.get('FILENAME')
-# bucket_name = os.environ.get('BUCKET_NAME')
-# s3 = boto3.client('s3')
-# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-# file_content = s3_object['Body'].read().decode('utf-8')
-# data = json.loads(file_content)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.loads(file_content)
 
-bucket_name = "ncs-washindex-single-site-reports-815867481426"
-filename = "fake_data/10_2023.json"
-with open(filename, "r") as f:
-    data = json.load(f)
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
 
 site_number = data["site_number"]
 
@@ -57,7 +57,7 @@ color_palette = [
 # Define column, ylabel to be used for plot
 col = "total_wash_count"
 ylabel = "Number of Washes"
-legend_labels = [f'Site {site_number}', 'Hub Average']
+legend_labels = [f'Site {site_number}', 'Avg of Other Sites']
 # Plot, save fig to buffer and put in dictionary
 fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 wash_counts_fig = rf.save_plot(fig)
@@ -95,6 +95,7 @@ plots_for_pdf["retail_rpc"] = retail_rpc_plot
 ### Churn Rate
 col = "churn_rate"
 ylabel = "Churn %"
+legend_labels = [f'Site {site_number}', 'Avg of Other Sites']
 fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 churn_plot = rf.save_plot(fig)
 plots_for_pdf["churn_rate"] = churn_plot
@@ -182,33 +183,33 @@ pio.write_image(fig, wash_index_score, format="png")
 plots_for_pdf["wash_index_score"] = wash_index_score
 
 ### CPI YoY
-cols = ['cpi_yoy_national', 'cpi_yoy_region']
+cols = ['cpi_yoy_region', 'cpi_yoy_national']
 ylabel = 'Percent Change (%)'
-legend_labels = ['U.S. City Average', division]
+legend_labels = [division, 'U.S. City Average']
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 cpi_plot = rf.save_plot(fig)
 plots_for_pdf['cpi_yoy'] = cpi_plot
 
 ### Unemployment
-cols = ['national_unemployment', 'region_unemployment']
+cols = ['region_unemployment', 'national_unemployment']
 ylabel = 'Rate (%)'
-legend_labels = ['National', state]
+legend_labels = [state, 'National']
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 unemploy_plot = rf.save_plot(fig)
 plots_for_pdf['unemployment'] = unemploy_plot
 
 ### Traffic
-cols = ['traffic_yoy_national', 'traffic_yoy_regional']
+cols = ['traffic_yoy_regional', 'traffic_yoy_national']
 ylabel = 'Percent Change (%)'
-legend_labels = ['National', state]
+legend_labels = [state, 'National']
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 traffic_plot = rf.save_plot(fig)
 plots_for_pdf['traffic'] = traffic_plot
 
 ### Gas Prices
-cols = ['gas_national', 'gas_regional']
+cols = ['gas_regional', 'gas_national']
 ylabel = 'Price ($)'
-legend_labels = ['U.S. City Average', division]
+legend_labels = [division, 'U.S. City Average']
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 gas_plot = rf.save_plot(fig)
 plots_for_pdf['gas'] = gas_plot

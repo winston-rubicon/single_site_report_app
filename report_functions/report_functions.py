@@ -7,18 +7,18 @@ import boto3
 import os
 import json
 
-# filename = os.environ.get('FILENAME')
-# bucket_name = os.environ.get('BUCKET_NAME')
-# s3 = boto3.client('s3')
-# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-# file_content = s3_object['Body'].read().decode('utf-8')
-# data = json.loads(file_content)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.loads(file_content)
 
 
-bucket_name = "ncs-washindex-single-site-reports-815867481426"
-filename = "fake_data/10_2023.json"
-with open(filename, "r") as f:
-    data = json.load(f)
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
 
 
 # Register AtlasGrotesk font
@@ -191,6 +191,7 @@ def multi_line_plot(cols, ylabel, legend_labels):
     Plots the data that will be plotted as a line plot function of month for the year leading up to the current month the report is generated.
     Assumes cols is a list of keys so that all data corresponding to each key will be plotted on same axis
     """
+    linestyles = ['-', '--']
     # Create a figure
     fig, ax = plt.subplots(figsize=(12, 6))
     
@@ -218,7 +219,8 @@ def multi_line_plot(cols, ylabel, legend_labels):
             else:
                 month_labels.append(month_name)
         # Plot the data
-        ax.plot(month_labels, ydata, color=color_palette[i], label=legend_labels[i])
+
+        ax.plot(month_labels, ydata, color=color_palette[i], label=legend_labels[i], linestyle=linestyles[i])
 
     legend = ax.legend(
             labels=legend_labels,
