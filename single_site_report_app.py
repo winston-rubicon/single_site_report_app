@@ -81,6 +81,7 @@ plots_for_pdf["retail_membership_distribution"] = retail_memberships_plot
 ### Membership RPC
 col = "membership_rpc"
 ylabel = "Average Revenue ($)"
+legend_labels = [f'Site {site_number}', 'Avg of Other Sites']
 fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 membership_rpc_plot = rf.save_plot(fig)
 plots_for_pdf["membership_rpc"] = membership_rpc_plot
@@ -95,7 +96,6 @@ plots_for_pdf["retail_rpc"] = retail_rpc_plot
 ### Churn Rate
 col = "churn_rate"
 ylabel = "Churn %"
-legend_labels = [f'Site {site_number}', 'Avg of Other Sites']
 fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
 churn_plot = rf.save_plot(fig)
 plots_for_pdf["churn_rate"] = churn_plot
