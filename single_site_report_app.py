@@ -59,14 +59,20 @@ col = "total_wash_count"
 ylabel = "Number of Washes"
 legend_labels = [f'Site {site_number}', 'Avg of Other Sites']
 # Plot, save fig to buffer and put in dictionary
-fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+try:
+    fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+except:
+    fig = rf.line_plot(col=col, ylabel=ylabel)
 wash_counts_fig = rf.save_plot(fig)
 plots_for_pdf["total_wash_counts"] = wash_counts_fig
 
 ### Revenue Per Car
 col = "revenue_per_car"
 ylabel = "Revenue Per Car ($)"
-fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+try:
+    fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+except:
+    fig = rf.line_plot(col=col, ylabel=ylabel)
 rpc_fig = rf.save_plot(fig)
 plots_for_pdf["revenue_per_car"] = rpc_fig
 
@@ -82,28 +88,40 @@ plots_for_pdf["retail_membership_distribution"] = retail_memberships_plot
 col = "membership_rpc"
 ylabel = "Average Revenue ($)"
 legend_labels = [f'Site {site_number}', 'Avg of Other Sites']
-fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+try:
+    fig = rf.multi_line_plot(cols=[col,'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+except:
+    fig = rf.line_plot(col=col, ylabel=ylabel)
 membership_rpc_plot = rf.save_plot(fig)
 plots_for_pdf["membership_rpc"] = membership_rpc_plot
 
 ### Retail RPC
 col = "retail_rpc"
 ylabel = "Average Revenue ($)"
-fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+try:
+    fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+except:
+    fig = rf.line_plot(col=col, ylabel=ylabel)
 retail_rpc_plot = rf.save_plot(fig)
 plots_for_pdf["retail_rpc"] = retail_rpc_plot
 
 ### Churn Rate
 col = "churn_rate"
 ylabel = "Churn %"
-fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+try:
+    fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+except:
+    fig = rf.line_plot(col=col, ylabel=ylabel)
 churn_plot = rf.save_plot(fig)
 plots_for_pdf["churn_rate"] = churn_plot
 
 ### Capture Rate
 col = "capture_rate"
 ylabel = "Capture %"
-fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+try:
+    fig = rf.multi_line_plot(cols=[col, 'hub_avg_'+col], ylabel=ylabel, legend_labels=legend_labels)
+except:
+    fig = rf.line_plot(col=col, ylabel=ylabel)
 capture_plot = rf.save_plot(fig)
 plots_for_pdf["capture_rate"] = capture_plot
 

@@ -74,6 +74,7 @@ def save_plot(fig):
     buffer = BytesIO()
     plt.savefig(buffer, format="png", dpi=300)
     buffer.seek(0)
+    plt.close()
     return buffer
 
 
