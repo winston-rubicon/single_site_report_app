@@ -16,7 +16,7 @@ data = json.loads(file_content)
 
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
+# filename = "fake_data/10_2023_fake.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 

@@ -735,9 +735,9 @@ class PDFPSReporte:
         self.elements.append(Spacer(1, 10))
 
         # Optimal Days/Wash per day text
-        total_optimal_weather_days = self.data["optimal_weather_days"][
+        total_optimal_weather_days = round(self.data["optimal_weather_days"][
             self.current_year_month
-        ]
+        ])
         optimal_text = f"""
         <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Optimal Car Wash Days</font><br/><br/>
         <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{self.month_name} {self.current_year} experienced approximately {total_optimal_weather_days} days
