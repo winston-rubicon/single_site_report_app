@@ -849,7 +849,7 @@ class PDFPSReporte:
         table_title = "Monthly Miles Traveled Year-Over-Year Change"
         greater_less = 'greater' if self.data['traffic_pct_ch_reg_nat']>0 else 'less'
         traffic_text = f"""
-            <font face="AtlasGrotesk-Bold" size=14>Consumer Price Index</font><br/>
+            <font face="AtlasGrotesk-Bold" size=14>State Monthly Miles Traveled</font><br/>
             <font face="AtlasGrotesk" size=10>
             The state's miles traveled  YoY changed {round(self.data['traffic_mom_regional'])}% compared to last month, and is
              {abs(round(self.data['traffic_pct_ch_reg_nat'],1))}% {greater_less} than the national YoY.
