@@ -8,17 +8,17 @@ import os
 import boto3
 import us
 
-filename = os.environ.get('FILENAME')
-bucket_name = os.environ.get('BUCKET_NAME')
-s3 = boto3.client('s3')
-s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-file_content = s3_object['Body'].read().decode('utf-8')
-data = json.loads(file_content)
+# filename = os.environ.get('FILENAME')
+# bucket_name = os.environ.get('BUCKET_NAME')
+# s3 = boto3.client('s3')
+# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+# file_content = s3_object['Body'].read().decode('utf-8')
+# data = json.loads(file_content)
 
-# bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023_fake.json"
-# with open(filename, "r") as f:
-#     data = json.load(f)
+bucket_name = "ncs-washindex-single-site-reports-815867481426"
+filename = "fake_data/10_2023_fake.json"
+with open(filename, "r") as f:
+    data = json.load(f)
 
 site_number = data["site_number"]
 
@@ -232,7 +232,7 @@ fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 gas_plot = rf.save_plot(fig)
 plots_for_pdf['gas'] = gas_plot
 
-pdf_class = pg.PDFPSReporte(
+pdf_class = pg.SingleSiteReport(
     plot_dict=plots_for_pdf,
     data_dict=data,
     current_year=current_year,
@@ -241,8 +241,15 @@ pdf_class = pg.PDFPSReporte(
 
 pdf = pdf_class.return_pdf()
 
-rf.save_to_s3(
-    bucket_name,
-    f"{data['hub_id']}/{site_number}/reports/{data['hub_name'].replace(' ','_')}_Site_{site_number}_monthly_report_{current_month}_{current_year}.pdf",
-    pdf,
-)
+# rf.save_to_s3(
+#     bucket_name,
+#     f"{data['hub_id']}/{site_number}/reports/{data['hub_name'].replace(' ','_')}_Site_{site_number}_monthly_report_{current_month}_{current_year}.pdf",
+#     pdf,
+# )
+
+
+### Saving to file locally, comment out when going to production
+file_path = 'test.pdf'
+# Write the BytesIO content to a file
+with open(file_path, 'wb') as file:
+    file.write(pdf.getvalue())

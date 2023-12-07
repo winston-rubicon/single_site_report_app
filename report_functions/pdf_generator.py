@@ -34,6 +34,30 @@ pdfmetrics.registerFont(
     TTFont("AtlasGrotesk-Bold", "branding/fonts/AtlasGrotesk-Bold.ttf")
 )
 
+# need explanation dict for feature importance breakdown
+explanation_dict = {
+    "prcp_total_average": "Average precipitation for the month",
+    "tmin_average": "Average daily low temperature",
+    "tmax_average": "Average daily high temperature",
+    "cpi_all_items": "CPI Value for all items",
+    "prcp_days_above_15": "Number of days with rain above 1.5 millimeters",
+    "months_since_opening": "Number of months the site has been open",
+    "snow_total_average": "Total average snowfall for the month",
+    "snow_days_above_1": "Number of days where snowfall was greater than one millimeter",
+    "snwd_total_average": "Average snow depth for the month",
+    "snwd_days_above_15": "Number of days with snow depth above 15 millimeters",
+    "one_month_prev_count": "Total washes in previous month",
+    "two_month_prev_count": "Total washes two months prior",
+    "three_month_prev_count": "Total washes three months prior",
+    "last_year_prev_count": "Total washes in same month in previous year",
+    "state_unemployment": "Current month's state unemployment rate",
+    "gas_per_gallon": "Current month's average gas price across BLS division",
+    "tmax_days_above_340": "Number of days with temperatures above 93F",
+    "tmin_days_below_0": "Number of days with temperatures below 32F",
+    "annual": "Annual seasonality",
+    "quarterly": "Quarterly seasonality",
+}
+
 
 class FooterCanvas(canvas.Canvas):
     def __init__(
@@ -302,7 +326,7 @@ def create_footer_canvas_wrapper(
     return footer_canvas_wrapper
 
 
-class PDFPSReporte:
+class SingleSiteReport:
     def __init__(
         self,
         plot_dict,
@@ -362,25 +386,25 @@ class PDFPSReporte:
         )
         # Making the PDF
         self.firstPage()
-        self.two_plot_box_below_page(
-            plots=[
-                self.plot_dict["total_wash_counts"],
-                self.plot_dict["revenue_per_car"],
-            ],
-            plot_titles=["Total Volume", "Revenue Per Car"],
-            page=2,
-        )
-        self.membership_vs_retail()
-        self.package_distribution()
-        self.two_plot_box_below_page(
-            plots=[plot_dict["churn_rate"], plot_dict["capture_rate"]],
-            plot_titles=["Churn Rate", "Capture Rate"],
-            page=5,
-        )
-        self.popular_days_hours()
+        # self.two_plot_box_below_page(
+        #     plots=[
+        #         self.plot_dict["total_wash_counts"],
+        #         self.plot_dict["revenue_per_car"],
+        #     ],
+        #     plot_titles=["Total Volume", "Revenue Per Car"],
+        #     page=2,
+        # )
+        # self.membership_vs_retail()
+        # self.package_distribution()
+        # self.two_plot_box_below_page(
+        #     plots=[plot_dict["churn_rate"], plot_dict["capture_rate"]],
+        #     plot_titles=["Churn Rate", "Capture Rate"],
+        #     page=5,
+        # )
+        # self.popular_days_hours()
         self.wash_index()
-        self.econ_page()
-        self.traffic_page()
+        # self.econ_page()
+        # self.traffic_page()
 
         # Build
         self.pdf = BytesIO()
@@ -713,6 +737,56 @@ class PDFPSReporte:
         )
         self.elements.append(PageBreak())
 
+    def feature_importances_table(self, main_feat="weather"):
+        table = Table(
+            [
+                [main_feat.capitalize(), ""],
+                [
+                    "Fraction of Prediction:",
+                    f"{self.data[f'{main_feat}_shap']['total_frac']}%",
+                ],
+                [
+                    "Most Import Features:",
+                    f"{explanation_dict[self.data[f'{main_feat}_shap']['feat1'][0]]}, {self.data[f'{main_feat}_shap']['feat1'][1]}%",
+                ],
+                [
+                    "",
+                    f"{explanation_dict[self.data[f'{main_feat}_shap']['feat2'][0]]}, {self.data[f'{main_feat}_shap']['feat2'][1]}%",
+                ],
+            ],
+            colWidths=[
+                stringWidth("Fraction of Prediction:", "AtlasGrotesk", 12)+12,
+                480 - stringWidth("Fraction of Prediction:", "AtlasGrotesk", 12),
+            ],
+        )
+        table.setStyle(
+            TableStyle(
+                [
+                    # Row 1: left-aligned, bold, size 14
+                    ("ALIGN", (0, 0), (-1, 0), "LEFT"),
+                    ("FONTNAME", (0, 0), (-1, 0), "AtlasGrotesk-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 14),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), self.cobalt),
+                    # Row 2, Cell 1: regular, size 12, center-aligned
+                    ("FONTNAME", (0, 1), (0, -1), "AtlasGrotesk"),
+                    ("FONTSIZE", (0, 1), (0, -1), 12),
+                    # Rows 2 and 3, Cells 2 and 3: regular, size 10, center-aligned
+                    ("FONTNAME", (1, 1), (-1, 2), "AtlasGrotesk"),
+                    ("FONTSIZE", (1, 1), (-1, 2), 10),
+                    ("TEXTCOLOR", (0, 1), (-1, -1), self.navy),
+                    # Some specific formatting for beautification
+                    ("BOTTOMPADDING", (0, 0), (0, -1), 5),
+                    ("TOPPADDING", (0, 0), (0, 0), 6),
+                    ("LEFTPADDING", (0, 0), (0, -1), 12),
+                    ("VALIGN", (1, 0), (1, -1), "BOTTOM"),
+                    ("BACKGROUND", (0, 0), (-1, -1), self.lightgrey),
+                    ("ROUNDEDCORNERS", [10, 10, 10, 10]),
+                ]
+            )
+        )
+
+        return table
+
     def wash_index(self):
         self.elements.append(Spacer(1, 10))
         # Simple table with index score on left, text with numbers on right
@@ -734,39 +808,71 @@ class PDFPSReporte:
         self.elements.append(table)
         self.elements.append(Spacer(1, 10))
 
-        # Optimal Days/Wash per day text
-        total_optimal_weather_days = round(self.data["optimal_weather_days"][
-            self.current_year_month
-        ])
-        optimal_text = f"""
-        <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Optimal Car Wash Days</font><br/><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{self.month_name} {self.current_year} experienced approximately {total_optimal_weather_days} days
-        of optimal car wash weather</font><br/>
-        """
-        optimal_text = Paragraph(optimal_text, self.grey_textbox)
-
-        total_optimal_day_washes = self.data["washes_per_optimal_day"][
-            self.current_year_month
-        ]
-        optimal_wash_text = f"""
-        <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Wash Count per Optimal Car Wash Day</font><br/><br/>
-        <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">Site {self.site_number} washed approximately {round(total_optimal_day_washes)} cars per optimal wash day in {self.month_name} {self.current_year}.</font><br/>
-        """
-        optimal_wash_text = Paragraph(optimal_wash_text, self.grey_textbox)
-
-        self.img_paragraph_table(
-            plot=self.plot_dict["optimal_weather_days"],
-            plot_title="Optimal Car Wash Days",
-            plot_height=2.75 * inch,
-            box_text=optimal_text,
+        # Feature Importances
+        weather_table = self.feature_importances_table("weather")
+        econ_table = self.feature_importances_table("economic")
+        historic_table = self.feature_importances_table("historic")
+        seasonal_table = self.feature_importances_table("seasonal")
+        table = Table(
+            [
+                ["Key Factors Driving Prediction"],
+                [""],
+                [weather_table],
+                [econ_table],
+                [historic_table],
+                [seasonal_table],
+            ]
         )
-        self.elements.append(Spacer(1, 30))
-        self.img_paragraph_table(
-            plot=self.plot_dict["washes_per_optimal_day"],
-            plot_title="Washes Per Optimal Car Wash Day",
-            box_text=optimal_wash_text,
-            plot_height=2.75 * inch,
+        table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                    ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
+                    ("FONTSIZE", (0, 0), (0, 0), 18),
+                    ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
+                    ("TOPPADDING", (0, 2), (-1, -1), 12),
+                    ("BOTTOMPADDING", (0, 2), (-1, -1), 12),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ]
+            )
         )
+        self.elements.append(table)
+
+        ### Going to move to new page once decided where it fits best
+        # # Optimal Days/Wash per day text
+        # total_optimal_weather_days = round(self.data["optimal_weather_days"][
+        #     self.current_year_month
+        # ])
+        # optimal_text = f"""
+        # <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Optimal Car Wash Days</font><br/><br/>
+        # <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{self.month_name} {self.current_year} experienced approximately {total_optimal_weather_days} days
+        # of optimal car wash weather</font><br/>
+        # """
+        # optimal_text = Paragraph(optimal_text, self.grey_textbox)
+
+        # total_optimal_day_washes = self.data["washes_per_optimal_day"][
+        #     self.current_year_month
+        # ]
+        # optimal_wash_text = f"""
+        # <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Wash Count per Optimal Car Wash Day</font><br/><br/>
+        # <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">Site {self.site_number} washed approximately {round(total_optimal_day_washes)} cars per optimal wash day in {self.month_name} {self.current_year}.</font><br/>
+        # """
+        # optimal_wash_text = Paragraph(optimal_wash_text, self.grey_textbox)
+
+        # self.img_paragraph_table(
+        #     plot=self.plot_dict["optimal_weather_days"],
+        #     plot_title="Optimal Car Wash Days",
+        #     plot_height=2.75 * inch,
+        #     box_text=optimal_text,
+        # )
+        # self.elements.append(Spacer(1, 30))
+        # self.img_paragraph_table(
+        #     plot=self.plot_dict["washes_per_optimal_day"],
+        #     plot_title="Washes Per Optimal Car Wash Day",
+        #     box_text=optimal_wash_text,
+        #     plot_height=2.75 * inch,
+        # )
         self.elements.append(PageBreak())
 
     def img_blue_textbox_below(
@@ -779,7 +885,7 @@ class PDFPSReporte:
                 ("TEXTCOLOR", (0, 0), (-1, -1), self.navy),
                 ("FONTNAME", (0, 0), (-1, -1), "AtlasGrotesk-Bold"),
                 ("FONTSIZE", (0, 0), (-1, -1), 14),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER")
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ]
         )
         plot = Image(
@@ -830,7 +936,7 @@ class PDFPSReporte:
 
         # Now Unemployment
         table_title = "Unemployment Rate"
-        greater_less = 'greater' if self.data['unemploy_pct_ch_reg_nat']>0 else 'less'
+        greater_less = "greater" if self.data["unemploy_pct_ch_reg_nat"] > 0 else "less"
         u_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Unemployment Rate</font><br/>
             <font face="AtlasGrotesk" size=10>
@@ -847,7 +953,7 @@ class PDFPSReporte:
     def traffic_page(self):
         # First is miles traveled information
         table_title = "Monthly Miles Traveled Year-Over-Year Change"
-        greater_less = 'greater' if self.data['traffic_pct_ch_reg_nat']>0 else 'less'
+        greater_less = "greater" if self.data["traffic_pct_ch_reg_nat"] > 0 else "less"
         traffic_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Consumer Price Index</font><br/>
             <font face="AtlasGrotesk" size=10>
@@ -863,7 +969,7 @@ class PDFPSReporte:
 
         # Gas Prices
         table_title = "Monthly Unleaded Standard Gas Price"
-        greater_less = 'greater' if self.data['gas_pct_ch_reg_nat']>0 else 'less'
+        greater_less = "greater" if self.data["gas_pct_ch_reg_nat"] > 0 else "less"
         gas_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Gas Prices</font><br/>
             <font face="AtlasGrotesk" size=10>
