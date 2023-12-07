@@ -142,14 +142,16 @@ plots_for_pdf["popular_hours"] = popular_hours_plot
 ### Optimal Weather Days
 col = "optimal_weather_days"
 ylabel = "Days"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+# fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.year_bar_plot(cols=[col], ylabel=ylabel)
 optimal_weather_days_plot = rf.save_plot(fig)
 plots_for_pdf["optimal_weather_days"] = optimal_weather_days_plot
 
 ### Washes Per Optimal Weather day
 col = "washes_per_optimal_day"
 ylabel = "Car Washes Per Optimal Day"
-fig = rf.line_plot(col=col, ylabel=ylabel)
+# fig = rf.line_plot(col=col, ylabel=ylabel)
+fig = rf.year_bar_plot(cols=[col], ylabel=ylabel)
 washes_per_optimal_day_plot = rf.save_plot(fig)
 plots_for_pdf["washes_per_optimal_day"] = washes_per_optimal_day_plot
 
