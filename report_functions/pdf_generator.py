@@ -403,6 +403,7 @@ class SingleSiteReport:
         # )
         # self.popular_days_hours()
         self.wash_index()
+        self.optimal_weather_page()
         # self.econ_page()
         # self.traffic_page()
 
@@ -839,40 +840,6 @@ class SingleSiteReport:
         )
         self.elements.append(table)
 
-        ### Going to move to new page once decided where it fits best
-        # # Optimal Days/Wash per day text
-        # total_optimal_weather_days = round(self.data["optimal_weather_days"][
-        #     self.current_year_month
-        # ])
-        # optimal_text = f"""
-        # <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Optimal Car Wash Days</font><br/><br/>
-        # <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{self.month_name} {self.current_year} experienced approximately {total_optimal_weather_days} days
-        # of optimal car wash weather</font><br/>
-        # """
-        # optimal_text = Paragraph(optimal_text, self.grey_textbox)
-
-        # total_optimal_day_washes = self.data["washes_per_optimal_day"][
-        #     self.current_year_month
-        # ]
-        # optimal_wash_text = f"""
-        # <font face=AtlasGrotesk-Bold size=10 color="#{self.hex_cobalt}">Wash Count per Optimal Car Wash Day</font><br/><br/>
-        # <font face=AtlasGrotesk size=8 color="#{self.hex_navy}">Site {self.site_number} washed approximately {round(total_optimal_day_washes)} cars per optimal wash day in {self.month_name} {self.current_year}.</font><br/>
-        # """
-        # optimal_wash_text = Paragraph(optimal_wash_text, self.grey_textbox)
-
-        # self.img_paragraph_table(
-        #     plot=self.plot_dict["optimal_weather_days"],
-        #     plot_title="Optimal Car Wash Days",
-        #     plot_height=2.75 * inch,
-        #     box_text=optimal_text,
-        # )
-        # self.elements.append(Spacer(1, 30))
-        # self.img_paragraph_table(
-        #     plot=self.plot_dict["washes_per_optimal_day"],
-        #     plot_title="Washes Per Optimal Car Wash Day",
-        #     box_text=optimal_wash_text,
-        #     plot_height=2.75 * inch,
-        # )
         self.elements.append(PageBreak())
 
     def img_blue_textbox_below(
@@ -913,6 +880,43 @@ class SingleSiteReport:
         insights = Table([[para]], colWidths=[7 * inch])
         insights.setStyle(self.rounded_corners)
         self.elements.append(insights)
+
+    def optimal_weather_page(self):
+        # First is Optimal Wash Days
+        table_title = "Optimal Car Wash Days"
+        total_optimal_weather_days = round(self.data["optimal_weather_days"][
+            self.current_year_month
+        ])
+        optimal_text = f"""
+            <font face="AtlasGrotesk-Bold" size=14>Optimal Car Wash Days</font><br/>
+            <font face="AtlasGrotesk" size=10>
+            {self.month_name} {self.current_year} experienced approximately {total_optimal_weather_days} days
+            of optimal car wash weather
+              </font><br/>
+            """
+        self.img_blue_textbox_below(
+            table_title, self.plot_dict["optimal_weather_days"], optimal_text, img_height=2.85 * inch
+        )
+
+        self.elements.append(Spacer(1, 20))
+
+        # Now Washes per optimal wash day
+        table_title = "Washes Per Optimal Car Wash Day"
+        total_optimal_day_washes = self.data["washes_per_optimal_day"][
+            self.current_year_month
+        ]
+        optimal_text = f"""
+            <font face="AtlasGrotesk-Bold" size=14>Wash Count per Optimal Car Wash Day</font><br/>
+            <font face="AtlasGrotesk" size=10>
+            Site {self.site_number} washed approximately {round(total_optimal_day_washes)}
+              cars per optimal wash day in {self.month_name} {self.current_year}
+              </font><br/>
+            """
+        self.img_blue_textbox_below(
+            table_title, self.plot_dict["washes_per_optimal_day"], optimal_text, img_height=2.85 * inch
+        )
+
+        self.elements.append(PageBreak())
 
     def econ_page(self):
         # First is CPI information
@@ -955,7 +959,7 @@ class SingleSiteReport:
         table_title = "Monthly Miles Traveled Year-Over-Year Change"
         greater_less = "greater" if self.data["traffic_pct_ch_reg_nat"] > 0 else "less"
         traffic_text = f"""
-            <font face="AtlasGrotesk-Bold" size=14>Consumer Price Index</font><br/>
+            <font face="AtlasGrotesk-Bold" size=14>State Monthly Miles Traveled</font><br/>
             <font face="AtlasGrotesk" size=10>
             The state's miles traveled  YoY changed {round(self.data['traffic_mom_regional'])}% compared to last month, and is
              {abs(round(self.data['traffic_pct_ch_reg_nat'],1))}% {greater_less} than the national YoY.
