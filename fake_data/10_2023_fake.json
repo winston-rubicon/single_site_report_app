@@ -1018,5 +1018,49 @@
         "10_2023": 3.782
     },
     "gas_mom_regional": -1.1219147344801723,
-    "gas_pct_ch_reg_nat": 39.82020095187732
+    "gas_pct_ch_reg_nat": 39.82020095187732,
+    "seasonal_shap": {
+        "total_frac": 18.8,
+        "feat1": [
+            "annual",
+            64.0
+        ],
+        "feat2": [
+            "quarterly",
+            36.0
+        ]
+    },
+    "weather_shap": {
+        "total_frac": 38.1,
+        "feat1": [
+            "prcp_total_average",
+            68.1
+        ],
+        "feat2": [
+            "prcp_days_above_15",
+            18.0
+        ]
+    },
+    "economic_shap": {
+        "total_frac": 11.0,
+        "feat1": [
+            "gas_per_gallon",
+            46.2
+        ],
+        "feat2": [
+            "cpi_all_items",
+            44.6
+        ]
+    },
+    "historic_shap": {
+        "total_frac": 32.1,
+        "feat1": [
+            "last_year_prev_count",
+            40.9
+        ],
+        "feat2": [
+            "two_month_prev_count",
+            25.3
+        ]
+    }
 }

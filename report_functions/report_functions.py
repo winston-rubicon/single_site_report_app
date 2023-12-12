@@ -14,12 +14,10 @@ s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
 file_content = s3_object['Body'].read().decode('utf-8')
 data = json.loads(file_content)
 
-
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
 # filename = "fake_data/10_2023_fake.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
-
 
 # Register AtlasGrotesk font
 font_manager.fontManager.addfont("branding/fonts/AtlasGrotesk-Regular.ttf")
@@ -381,14 +379,18 @@ def variable_bar_plot(col, ylabel):
 # Package Distribution Plots
 def package_distribution_plot(col, title, num_packages, color_dict):
     """
-    Create ring plots for the desired package breakdown (retail or membership)
+    Create ring plots for the desired package breakdown (retail or membership).
+    num_packages=None means plotting feature importances
     """
     package_names = data[col].keys()
     colors = [color_dict[package_name] for package_name in package_names]
     package_data = data[col].values()
 
     # Now you can plot your pie chart as a donut plot
-    fig, ax = plt.subplots()
+    if num_packages is None:
+        fig,ax = plt.subplots(figsize=(12,9))
+    else:
+        fig, ax = plt.subplots()
     p_labels = ["{:.1f}%".format(data[col][package]) for package in package_names]
     patches, texts = ax.pie(package_data, labels=p_labels, colors=colors)
 
@@ -409,7 +411,16 @@ def package_distribution_plot(col, title, num_packages, color_dict):
 
     # Add a legend, where it goes will depend on the number of packages being plotted
     # This is passed in in case of differences between mem/retail
-    if num_packages<4:
+    if num_packages is None:
+        legend = ax.legend(
+            handles=patches,
+            labels=package_names,
+            loc='lower center',
+            bbox_to_anchor=(1.14, 0.4),
+            title=None,
+            prop={"family": font},
+        )
+    elif num_packages<4:
         legend = ax.legend(
             handles=patches,
             labels=package_names,
@@ -427,6 +438,7 @@ def package_distribution_plot(col, title, num_packages, color_dict):
             title=None,
             prop={"family": font},
         )
+    
 
     legend.get_frame().set_facecolor("#f5f5f5")
     legend.get_frame().set_linewidth(0)
@@ -438,6 +450,13 @@ def package_distribution_plot(col, title, num_packages, color_dict):
     for text in texts:
         text.set_color("#003264")
         text.set_fontproperties(font_bold)
+    
+    if num_packages is None:
+        for text in legend.get_texts():
+            text.set_fontsize(40)
+        for text in texts:
+            text.set_fontsize(24)
+        plt.subplots_adjust(right=1.0, left=0.4)
 
     plt.tight_layout()
 
