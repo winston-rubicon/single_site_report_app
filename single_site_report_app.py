@@ -8,17 +8,17 @@ import os
 import boto3
 import us
 
-# filename = os.environ.get('FILENAME')
-# bucket_name = os.environ.get('BUCKET_NAME')
-# s3 = boto3.client('s3')
-# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-# file_content = s3_object['Body'].read().decode('utf-8')
-# data = json.loads(file_content)
+filename = os.environ.get('FILENAME')
+bucket_name = os.environ.get('BUCKET_NAME')
+s3 = boto3.client('s3')
+s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+file_content = s3_object['Body'].read().decode('utf-8')
+data = json.loads(file_content)
 
-bucket_name = "ncs-washindex-single-site-reports-815867481426"
-filename = "fake_data/10_2023_fake.json"
-with open(filename, "r") as f:
-    data = json.load(f)
+# bucket_name = "ncs-washindex-single-site-reports-815867481426"
+# filename = "fake_data/10_2023_fake.json"
+# with open(filename, "r") as f:
+#     data = json.load(f)
 
 site_number = data["site_number"]
 
@@ -233,6 +233,14 @@ legend_labels = [division, 'U.S. City Average']
 fig = rf.multi_line_plot(cols=cols, ylabel=ylabel, legend_labels=legend_labels)
 gas_plot = rf.save_plot(fig)
 plots_for_pdf['gas'] = gas_plot
+
+
+###------------------------- INPROGRESS - Pie chart for feature importances
+color_dict = dict(zip(data['feature_importances'].keys(), color_palette))
+fig = rf.package_distribution_plot(col='feature_importances', title=None, num_packages=None, color_dict=color_dict)
+feat_plot = rf.save_plot(fig)
+plots_for_pdf['feature_importances'] = feat_plot
+###-------------------------
 
 pdf_class = pg.SingleSiteReport(
     plot_dict=plots_for_pdf,
