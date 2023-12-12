@@ -1062,5 +1062,11 @@
             "two_month_prev_count",
             25.3
         ]
+    },
+    "feature_importances": {
+        "Weather": 45.4,
+        "Historic": 34.7,
+        "Economic": 8.6,
+        "Seasonal": 11.4
     }
 }
