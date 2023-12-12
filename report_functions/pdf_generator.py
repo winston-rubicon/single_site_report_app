@@ -362,6 +362,7 @@ class SingleSiteReport:
         self.hex_cobalt = self.cobalt.hexval()[2:]
         self.hex_skyblue = self.skyblue.hexval()[2:]
         self.hex_grey = "8e8e8e"
+        self.hex_gold = "ffcb00"
         # Some commonly used Table/Paragraph styles
         self.rounded_corners = TableStyle(
             [
@@ -386,26 +387,26 @@ class SingleSiteReport:
         )
         # Making the PDF
         self.firstPage()
-        # self.two_plot_box_below_page(
-        #     plots=[
-        #         self.plot_dict["total_wash_counts"],
-        #         self.plot_dict["revenue_per_car"],
-        #     ],
-        #     plot_titles=["Total Volume", "Revenue Per Car"],
-        #     page=2,
-        # )
-        # self.membership_vs_retail()
-        # self.package_distribution()
-        # self.two_plot_box_below_page(
-        #     plots=[plot_dict["churn_rate"], plot_dict["capture_rate"]],
-        #     plot_titles=["Churn Rate", "Capture Rate"],
-        #     page=5,
-        # )
-        # self.popular_days_hours()
+        self.two_plot_box_below_page(
+            plots=[
+                self.plot_dict["total_wash_counts"],
+                self.plot_dict["revenue_per_car"],
+            ],
+            plot_titles=["Total Volume", "Revenue Per Car"],
+            page=2,
+        )
+        self.membership_vs_retail()
+        self.package_distribution()
+        self.two_plot_box_below_page(
+            plots=[plot_dict["churn_rate"], plot_dict["capture_rate"]],
+            plot_titles=["Churn Rate", "Capture Rate"],
+            page=5,
+        )
+        self.popular_days_hours()
         self.wash_index()
         self.optimal_weather_page()
-        # self.econ_page()
-        # self.traffic_page()
+        self.econ_page()
+        self.traffic_page()
 
         # Build
         self.pdf = BytesIO()
@@ -416,9 +417,9 @@ class SingleSiteReport:
     def bulleted_text(self, title_text, bullets: list):
         """
         Returns ListFlowable of text to be rendered as multi-colored bulleted list,
-        with descriptive title. body_text must be a list of bullets to use.
+        with descriptive title. bullets must be a list of bullets to use.
         """
-        colors = [self.hex_navy, self.hex_skyblue, self.hex_cobalt]
+        colors = [self.hex_cobalt, self.hex_navy, self.hex_skyblue, self.hex_gold]
         formatted_title = Paragraph(
             f"""<font face=AtlasGrotesk-Bold size=10 color="#{self.hex_navy}">{title_text}</font><br/><br/>"""
         )
@@ -756,7 +757,7 @@ class SingleSiteReport:
                 ],
             ],
             colWidths=[
-                stringWidth("Fraction of Prediction:", "AtlasGrotesk", 12)+12,
+                stringWidth("Fraction of Prediction:", "AtlasGrotesk", 12) + 12,
                 480 - stringWidth("Fraction of Prediction:", "AtlasGrotesk", 12),
             ],
         )
@@ -789,7 +790,7 @@ class SingleSiteReport:
         return table
 
     def wash_index(self):
-        self.elements.append(Spacer(1, 10))
+        self.elements.append(Spacer(1, 40))
         # Simple table with index score on left, text with numbers on right
         index_img = Image(
             self.plot_dict["wash_index_score"], width=3.25 * inch, height=2.25 * inch
@@ -807,38 +808,181 @@ class SingleSiteReport:
         )
         table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, 0), "TOP")]))
         self.elements.append(table)
-        self.elements.append(Spacer(1, 10))
+        # self.elements.append(Spacer(1, 10))
 
-        # Feature Importances
-        weather_table = self.feature_importances_table("weather")
-        econ_table = self.feature_importances_table("economic")
-        historic_table = self.feature_importances_table("historic")
-        seasonal_table = self.feature_importances_table("seasonal")
-        table = Table(
-            [
-                ["Key Factors Driving Prediction"],
-                [""],
-                [weather_table],
-                [econ_table],
-                [historic_table],
-                [seasonal_table],
-            ]
+        # Changing up the layout of the feature importances section.
+        # Creating a 'graphic' (table) that will show the contribution of the four main categories
+        # to the prediction, and then a textbox below describing the effect(?)
+        ### Side-by-side - think column is better
+        # feat_table = Table(
+        #     [
+        #         [
+        #             f"Weather: ",
+        #             f"{self.data['weather_shap']['total_frac']}%",
+        #             f"Historic: ",
+        #             f"{self.data['historic_shap']['total_frac']}%",
+        #         ],
+        #         [
+        #             f"Economic: ",
+        #             f"{self.data['economic_shap']['total_frac']}%",
+        #             f"Seasonal: ",
+        #             f"{self.data['seasonal_shap']['total_frac']}%",
+        #         ],
+        #     ]
+        # )
+
+        ### Column
+        # feat_table = Table(
+        #     [
+        #         [f"Weather: ", f"{self.data['weather_shap']['total_frac']}%"],
+        #         [
+        #             f"Historic: ",
+        #             f"{self.data['historic_shap']['total_frac']}%",
+        #         ],
+        #         [f"Economic: ", f"{self.data['economic_shap']['total_frac']}%"],
+        #         [
+        #             f"Seasonal: ",
+        #             f"{self.data['seasonal_shap']['total_frac']}%",
+        #         ],
+        #     ]
+        # )
+
+        ### This works for either column or side-by-side
+        # feat_table.setStyle(
+        #     TableStyle(
+        #         [  # First Column
+        #             ("TEXTCOLOR", (0, 0), (0, -1), self.cobalt),
+        #             ("FONTNAME", (0, 0), (0, -1), "AtlasGrotesk-Bold"),
+        #             ("FONTSIZE", (0, 0), (0, -1), 14),
+        #             # Third Column
+        #             ("TEXTCOLOR", (2, 0), (2, -1), self.cobalt),
+        #             ("FONTNAME", (2, 0), (2, -1), "AtlasGrotesk-Bold"),
+        #             ("FONTSIZE", (2, 0), (2, -1), 14),
+        #             # Second Column
+        #             ("TEXTCOLOR", (1, 0), (1, -1), self.navy),
+        #             ("FONTNAME", (1, 0), (1, -1), "AtlasGrotesk"),
+        #             ("FONTSIZE", (1, 0), (1, -1), 12),
+        #             # Fourth Column
+        #             ("TEXTCOLOR", (3, 0), (3, -1), self.navy),
+        #             ("FONTNAME", (3, 0), (3, -1), "AtlasGrotesk"),
+        #             ("FONTSIZE", (3, 0), (3, -1), 12),
+        #             # All
+        #             ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        #             ("TOPPADDING", (0, 0), (-1, -1), 6),
+        #             ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        #             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        #             ("BACKGROUND", (0, 0), (-1, -1), self.lightgrey),
+        #             ("ROUNDEDCORNERS", [10, 10, 10, 10]),
+        #         ]
+        #     )
+        # )
+
+        ### Trying out pie chart
+        feat_table = Image(
+            self.plot_dict["feature_importances"],
+            width=4*inch,
+            height=3 * inch,
         )
+
+        table = Table([["Feature Contribution to the Prediction"], [feat_table]])
         table.setStyle(
             TableStyle(
                 [
-                    ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                    ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
                     ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
                     ("FONTSIZE", (0, 0), (0, 0), 18),
-                    ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
-                    ("TOPPADDING", (0, 2), (-1, -1), 12),
-                    ("BOTTOMPADDING", (0, 2), (-1, -1), 12),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 12),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ]
             )
         )
         self.elements.append(table)
+
+        self.elements.append(Spacer(1, 5))
+
+        ### Creating a temporary textbox that will briefly describe each factor. Below will be for later reports. 
+        # text = f"""
+        #     <font face="AtlasGrotesk-Bold" size=14>Understanding the Feature Contributions</font><br/>
+        #     <font face="AtlasGrotesk" size=10>
+        #     In predicting the wash counts for the current month, the above features contributed the respective fraction to the prediction. 
+        #     Weather affected the prediction by {self.data['weather_shap']['total_frac']}%, while previous performance ('Historic') had an effect of 
+        #     {self.data['historic_shap']['total_frac']}%. 
+        #       </font><br/>
+        #     """
+        # # Description of above
+        # para = Paragraph(
+        #     text,
+        #     ParagraphStyle(
+        #         "blue_textbox",
+        #         fontName="AtlasGrotesk",
+        #         fontSize=10,
+        #         textColor=self.white,
+        #         backColor=self.cobalt,
+        #         borderPadding=20,
+        #         leading=20,
+        #     ),
+        # )
+        # insights = Table([[para]], colWidths=[7 * inch])
+        # insights.setStyle(self.rounded_corners)
+
+        text = f"""
+            <font face="AtlasGrotesk-Bold" size=14>Understanding the Features</font><br/><br/>
+            <font face="AtlasGrotesk" size=10>
+            <font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.<br/>
+            <font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and patterns.<br/>
+            <font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.<br/>
+            <font face="AtlasGrotesk-Bold">Seasonal</font> - Captures patterns related to different times of the year, recognizing shifts in trends due to seasons and periodic events.
+            </font><br/>
+            """
+        # Description of above
+        para = Paragraph(
+            text,
+            ParagraphStyle(
+                "grey_textbox",
+                fontName="AtlasGrotesk",
+                fontSize=10,
+                textColor=self.navy,
+                backColor=self.lightgrey,
+                borderPadding=20,
+                leading=15,
+            ),
+        )
+        insights = Table([[para]], colWidths=[7 * inch])
+        insights.setStyle(self.rounded_corners)
+
+        self.elements.append(insights)
+
+        # # Feature Importances
+        # weather_table = self.feature_importances_table("weather")
+        # econ_table = self.feature_importances_table("economic")
+        # historic_table = self.feature_importances_table("historic")
+        # seasonal_table = self.feature_importances_table("seasonal")
+        # table = Table(
+        #     [
+        #         ["Key Factors Driving Prediction"],
+        #         [""],
+        #         [weather_table],
+        #         [econ_table],
+        #         [historic_table],
+        #         [seasonal_table],
+        #     ]
+        # )
+        # table.setStyle(
+        #     TableStyle(
+        #         [
+        #             ("ALIGN", (0, 0), (0, 0), "LEFT"),
+        #             ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
+        #             ("FONTSIZE", (0, 0), (0, 0), 18),
+        #             ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
+        #             ("TOPPADDING", (0, 2), (-1, -1), 12),
+        #             ("BOTTOMPADDING", (0, 2), (-1, -1), 12),
+        #             ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        #             ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        #         ]
+        #     )
+        # )
+        # self.elements.append(table)
 
         self.elements.append(PageBreak())
 
@@ -884,9 +1028,9 @@ class SingleSiteReport:
     def optimal_weather_page(self):
         # First is Optimal Wash Days
         table_title = "Optimal Car Wash Days"
-        total_optimal_weather_days = round(self.data["optimal_weather_days"][
-            self.current_year_month
-        ])
+        total_optimal_weather_days = round(
+            self.data["optimal_weather_days"][self.current_year_month]
+        )
         optimal_text = f"""
             <font face="AtlasGrotesk-Bold" size=14>Optimal Car Wash Days</font><br/>
             <font face="AtlasGrotesk" size=10>
@@ -895,7 +1039,10 @@ class SingleSiteReport:
               </font><br/>
             """
         self.img_blue_textbox_below(
-            table_title, self.plot_dict["optimal_weather_days"], optimal_text, img_height=2.85 * inch
+            table_title,
+            self.plot_dict["optimal_weather_days"],
+            optimal_text,
+            img_height=2.85 * inch,
         )
 
         self.elements.append(Spacer(1, 20))
@@ -913,7 +1060,10 @@ class SingleSiteReport:
               </font><br/>
             """
         self.img_blue_textbox_below(
-            table_title, self.plot_dict["washes_per_optimal_day"], optimal_text, img_height=2.85 * inch
+            table_title,
+            self.plot_dict["washes_per_optimal_day"],
+            optimal_text,
+            img_height=2.85 * inch,
         )
 
         self.elements.append(PageBreak())
