@@ -28,4 +28,3 @@ variable "security_group_id" {
   description = "The ID of the security group that allows all outbound traffic"
   type        = string
 }
-
