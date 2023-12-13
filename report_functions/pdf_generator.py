@@ -790,7 +790,7 @@ class SingleSiteReport:
         return table
 
     def wash_index(self):
-        self.elements.append(Spacer(1, 40))
+        self.elements.append(Spacer(1, 20))
         # Simple table with index score on left, text with numbers on right
         index_img = Image(
             self.plot_dict["wash_index_score"], width=3.25 * inch, height=2.25 * inch
@@ -880,7 +880,7 @@ class SingleSiteReport:
         ### Trying out pie chart
         feat_table = Image(
             self.plot_dict["feature_importances"],
-            width=4*inch,
+            width=4 * inch,
             height=3 * inch,
         )
 
@@ -890,8 +890,8 @@ class SingleSiteReport:
                 [
                     ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
                     ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
-                    ("FONTSIZE", (0, 0), (0, 0), 18),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 18),
+                    ("FONTSIZE", (0, 0), (0, 0), 14),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
                     ("TOPPADDING", (0, 0), (-1, -1), 6),
                     ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ]
@@ -901,13 +901,13 @@ class SingleSiteReport:
 
         self.elements.append(Spacer(1, 5))
 
-        ### Creating a temporary textbox that will briefly describe each factor. Below will be for later reports. 
+        ### Creating a temporary textbox that will briefly describe each factor. Below will be for later reports.
         # text = f"""
         #     <font face="AtlasGrotesk-Bold" size=14>Understanding the Feature Contributions</font><br/>
         #     <font face="AtlasGrotesk" size=10>
-        #     In predicting the wash counts for the current month, the above features contributed the respective fraction to the prediction. 
-        #     Weather affected the prediction by {self.data['weather_shap']['total_frac']}%, while previous performance ('Historic') had an effect of 
-        #     {self.data['historic_shap']['total_frac']}%. 
+        #     In predicting the wash counts for the current month, the above features contributed the respective fraction to the prediction.
+        #     Weather affected the prediction by {self.data['weather_shap']['total_frac']}%, while previous performance ('Historic') had an effect of
+        #     {self.data['historic_shap']['total_frac']}%.
         #       </font><br/>
         #     """
         # # Description of above
@@ -926,30 +926,97 @@ class SingleSiteReport:
         # insights = Table([[para]], colWidths=[7 * inch])
         # insights.setStyle(self.rounded_corners)
 
-        text = f"""
-            <font face="AtlasGrotesk-Bold" size=14>Understanding the Features</font><br/><br/>
-            <font face="AtlasGrotesk" size=10>
-            <font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.<br/>
-            <font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and patterns.<br/>
-            <font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.<br/>
-            <font face="AtlasGrotesk-Bold">Seasonal</font> - Captures patterns related to different times of the year, recognizing shifts in trends due to seasons and periodic events.
-            </font><br/>
-            """
-        # Description of above
-        para = Paragraph(
-            text,
-            ParagraphStyle(
-                "grey_textbox",
-                fontName="AtlasGrotesk",
-                fontSize=10,
-                textColor=self.navy,
-                backColor=self.lightgrey,
-                borderPadding=20,
-                leading=15,
-            ),
+        img_size=15
+        img_list = [
+            Image("branding/weather_icon.png", img_size, img_size, mask='auto'),
+            Image("branding/historic_icon.png", img_size, img_size, mask='auto'),
+            Image("branding/economic_icon.png", img_size, img_size, mask='auto'),
+            Image("branding/seasonal_icon.png", img_size, img_size, mask='auto'),
+        ]
+
+        text_parastyle = ParagraphStyle(
+            "grey_textbox",
+            fontName="AtlasGrotesk",
+            fontSize=10,
+            textColor=self.navy,
+            backColor=self.lightgrey,
+            borderPadding=10,
+            leading=15,
         )
-        insights = Table([[para]], colWidths=[7 * inch])
+
+        text_list = [
+            Paragraph(
+                f"""<font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.<br/>""",
+                text_parastyle,
+            ),
+            Paragraph(
+                f"""<font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and patterns.<br/>""",
+                text_parastyle,
+            ),
+            Paragraph(
+                f"""<font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.<br/>""",
+                text_parastyle,
+            ),
+            Paragraph(
+                f"""<font face="AtlasGrotesk-Bold">Seasonal</font> - Captures patterns related to different times of the year, recognizing shifts in trends due to seasons and periodic events.""",
+                text_parastyle,
+            ),
+        ]
+
+        img_text_table = [[img, text] for img, text in zip(img_list, text_list)]
+
+        text = Paragraph("Understanding the Features",
+                         ParagraphStyle('name',
+                                        fontName='AtlasGrotesk-Bold',
+                                        fontSize=14,
+                                        textColor=self.navy))
+
+        insights = Table(
+            [
+                ["Understanding the Features", ""],
+                img_text_table[0],
+                img_text_table[1],
+                img_text_table[2],
+                img_text_table[3],
+            ],
+            colWidths=[40, 6.5*inch]
+        )
+
         insights.setStyle(self.rounded_corners)
+        insights.setStyle(TableStyle([
+            ("SPAN", (0, 0), (-1, 0)),
+            ("ALIGN", (0, 0), (0, 0), ("LEFT")),
+            ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
+            ("FONTSIZE", (0, 0), (0, 0), 14),
+            ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
+            ("ALIGN", (0, 1), (0, -1), ("CENTER")),
+            ("VALIGN", (0, 1), (0, -1), ("MIDDLE")),
+            ("TOPPADDING", (0, 1), (0, -1), 5),
+        ]))
+
+        # text = f"""
+        #     <font face="AtlasGrotesk-Bold" size=14>Understanding the Features</font><br/><br/>
+        #     <font face="AtlasGrotesk" size=10>
+        #     <font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.<br/>
+        #     <font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and patterns.<br/>
+        #     <font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.<br/>
+        #     <font face="AtlasGrotesk-Bold">Seasonal</font> - Captures patterns related to different times of the year, recognizing shifts in trends due to seasons and periodic events.
+        #     </font><br/>
+        #     """
+        # Description of above
+        # para = Paragraph(
+        #     text,
+        #     ParagraphStyle(
+        #         "grey_textbox",
+        #         fontName="AtlasGrotesk",
+        #         fontSize=10,
+        #         textColor=self.navy,
+        #         backColor=self.lightgrey,
+        #         borderPadding=20,
+        #         leading=15,
+        #     ),
+        # )
+        # insights = Table([[para]], colWidths=[7 * inch])
 
         self.elements.append(insights)
 
@@ -1023,6 +1090,15 @@ class SingleSiteReport:
 
         insights = Table([[para]], colWidths=[7 * inch])
         insights.setStyle(self.rounded_corners)
+        insights.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
+                    ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
+                    ("FONTSIZE", (0, 0), (0, 0), 14),
+                ]
+            )
+        )
         self.elements.append(insights)
 
     def optimal_weather_page(self):
