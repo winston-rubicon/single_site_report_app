@@ -251,15 +251,15 @@ pdf_class = pg.SingleSiteReport(
 
 pdf = pdf_class.return_pdf()
 
-# rf.save_to_s3(
-#     bucket_name,
-#     f"{data['hub_id']}/{site_number}/reports/{data['hub_name'].replace(' ','_')}_Site_{site_number}_monthly_report_{current_month}_{current_year}_v2.pdf",
-#     pdf,
-# )
+rf.save_to_s3(
+    bucket_name,
+    f"{data['hub_id']}/{site_number}/reports/{data['hub_name'].replace(' ','_')}_Site_{site_number}_monthly_report_{current_month}_{current_year}.pdf",
+    pdf,
+)
 
 
-### Saving to file locally, comment out when going to production
-file_path = 'test.pdf'
-# Write the BytesIO content to a file
-with open(file_path, 'wb') as file:
-    file.write(pdf.getvalue())
+# ### Saving to file locally, comment out when going to production
+# file_path = 'test.pdf'
+# # Write the BytesIO content to a file
+# with open(file_path, 'wb') as file:
+#     file.write(pdf.getvalue())
