@@ -239,7 +239,10 @@ plots_for_pdf['gas'] = gas_plot
 color_dict = dict(zip(data['feature_importances'].keys(), color_palette))
 fig = rf.package_distribution_plot(col='feature_importances', title=None, num_packages=None, color_dict=color_dict)
 feat_plot = rf.save_plot(fig)
-plots_for_pdf['feature_importances'] = feat_plot
+# changing the method for this plot a bit since the legend needs to be made with reportlab
+# passing the color_dict to be used for legend_creation
+plots_for_pdf['feature_importances'] = {'fig':feat_plot,
+                                        'colors': color_dict}
 ###-------------------------
 
 pdf_class = pg.SingleSiteReport(

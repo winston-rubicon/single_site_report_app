@@ -414,33 +414,39 @@ class SingleSiteReport:
         self.doc.multiBuild(self.elements, canvasmaker=self.custom_wrapper)
         self.pdf.seek(0)
 
-    def bulleted_text(self, title_text, bullets: list):
+    def bulleted_text(self, bullets: list, colors=None, title_text=None, text_size=8):
         """
         Returns ListFlowable of text to be rendered as multi-colored bulleted list,
         with descriptive title. bullets must be a list of bullets to use.
         """
-        colors = [self.hex_cobalt, self.hex_navy, self.hex_skyblue, self.hex_gold]
-        formatted_title = Paragraph(
-            f"""<font face=AtlasGrotesk-Bold size=10 color="#{self.hex_navy}">{title_text}</font><br/><br/>"""
-        )
+        if colors is None:
+            colors = [self.hex_cobalt, self.hex_navy, self.hex_skyblue, self.hex_gold]
+        if title_text is not None:
+            formatted_title = Paragraph(
+                f"""<font face=AtlasGrotesk-Bold size={text_size+2} color="#{self.hex_navy}">{title_text}</font><br/><br/>"""
+            )
 
         bullet_items = []
 
         for color, bullet in zip(colors, bullets):
             bullet_paragraph = Paragraph(
-                f"""<font face=AtlasGrotesk size=8 color="#{self.hex_navy}">{bullet}</font>""",
-                ParagraphStyle("blah"),
+                f"""<font face=AtlasGrotesk size={text_size} color="#{self.hex_navy}">{bullet}</font>""",
+                ParagraphStyle("blah", leading=1.5 * text_size),
             )
             bullet_item = ListItem(
                 bullet_paragraph,
                 bulletColor=f"#{color}",
-                bulletFontSize=24,
-                bulletOffsetY=10,
+                bulletFontSize=3 * text_size,
+                bulletOffsetY=1.25 * text_size,
             )
             bullet_items.append(bullet_item)
 
         bullet_list = ListFlowable(bullet_items, bulletType="bullet")
-        return [formatted_title, bullet_list]
+        if title_text is not None:
+            ret = [formatted_title, bullet_list]
+        else:
+            ret = [bullet_list]
+        return ret
 
     def firstPage(self):
         # Handled by cover page above, for reasons
@@ -492,12 +498,16 @@ class SingleSiteReport:
             avg_vol = self.data["ytd_avg_washes"]
             first_box_title = "12 Month Average Volume"
             first_box_text = [f"Site {self.site_number}: {avg_vol:,}"]
-            first_box = self.bulleted_text(first_box_title, first_box_text)
+            first_box = self.bulleted_text(
+                title_text=first_box_title, bullets=first_box_text
+            )
 
             avg_rev = self.data["ytd_avg_rpc"]
             second_box_title = "12 Month Average Revenue Per Car"
             second_box_text = [f"Site {self.site_number}: ${avg_rev:,}"]
-            second_box = self.bulleted_text(second_box_title, second_box_text)
+            second_box = self.bulleted_text(
+                title_text=second_box_title, bullets=second_box_text
+            )
 
             mom_vol = self.data["mom_washes"]
             mom_rev = self.data["mom_rpc"]
@@ -514,12 +524,16 @@ class SingleSiteReport:
             avg_churn = self.data["ytd_avg_churn"]
             first_box_title = "12 Month Average Churn Rate"
             first_box_text = [f"Site {self.site_number}: {avg_churn}%"]
-            first_box = self.bulleted_text(first_box_title, first_box_text)
+            first_box = self.bulleted_text(
+                title_text=first_box_title, bullets=first_box_text
+            )
 
             avg_capture = self.data["ytd_avg_capture"]
             second_box_title = "12 Month Average Capture Rate"
             second_box_text = [f"Site {self.site_number}: {avg_capture}%"]
-            second_box = self.bulleted_text(second_box_title, second_box_text)
+            second_box = self.bulleted_text(
+                title_text=second_box_title, bullets=second_box_text
+            )
 
             mom_churn = self.data["mom_churn"]
             mom_capture = self.data["mom_capture"]
@@ -584,7 +598,7 @@ class SingleSiteReport:
         mem_rpc = round(self.data["ytd_avg_mem_rpc"], 2)
         title = "12 Month Average Membership RPC"
         text = [f"Site {self.site_number}: ${mem_rpc}"]
-        bullets = self.bulleted_text(title, text)
+        bullets = self.bulleted_text(title_text=title, bullets=text)
 
         self.img_paragraph_table(
             plot=self.plot_dict["membership_rpc"],
@@ -599,7 +613,7 @@ class SingleSiteReport:
         retail_rpc = round(self.data["ytd_avg_retail_rpc"], 2)
         title = "12 Month Average Retail RPC"
         text = [f"Site {self.site_number}: ${retail_rpc}"]
-        bullets = self.bulleted_text(title, text)
+        bullets = self.bulleted_text(title_text=title, bullets=text)
 
         self.img_paragraph_table(
             plot=self.plot_dict["retail_rpc"],
@@ -878,13 +892,42 @@ class SingleSiteReport:
         # )
 
         ### Trying out pie chart
-        feat_table = Image(
-            self.plot_dict["feature_importances"],
+        feat_chart = Image(
+            self.plot_dict["feature_importances"]["fig"],
             width=4 * inch,
             height=3 * inch,
         )
 
-        table = Table([["Feature Contribution to the Prediction"], [feat_table]])
+        color_dict = self.plot_dict["feature_importances"]["colors"]
+        feat_legend = Table(
+            [
+                self.bulleted_text(
+                    bullets=list(color_dict.keys()),
+                    colors=[color.strip("#") for color in color_dict.values()],
+                    text_size=12,
+                )
+            ], colWidths=[1.25*inch]
+        )
+        feat_legend.setStyle(
+            TableStyle(
+                [
+                    ("ROUNDEDCORNERS", [10, 10, 10, 10]),
+                    ("BACKGROUND", (0, 0), (-1, -1), self.lightgrey),
+                ]
+            )
+        )
+
+        table = Table(
+            [
+                ["Feature Contribution to the Prediction", ""],
+                [feat_chart, ""],
+                ["", ""],
+                ["", feat_legend],
+                ["", ""],
+                ["", ""],
+            ],
+            colWidths=[4 * inch, 1.25 * inch],
+        )
         table.setStyle(
             TableStyle(
                 [
@@ -894,6 +937,10 @@ class SingleSiteReport:
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
                     ("TOPPADDING", (0, 0), (-1, -1), 6),
                     ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("SPAN", (0, 0), (-1, 0)),
+                    ("SPAN", (0, 1), (0, -1)),
+                    ("BOTTOMPADDING", (1, 3), (1, 3), 6),
                 ]
             )
         )
@@ -926,12 +973,12 @@ class SingleSiteReport:
         # insights = Table([[para]], colWidths=[7 * inch])
         # insights.setStyle(self.rounded_corners)
 
-        img_size=15
+        img_size = 15
         img_list = [
-            Image("branding/weather_icon.png", img_size, img_size, mask='auto'),
-            Image("branding/historic_icon.png", img_size, img_size, mask='auto'),
-            Image("branding/economic_icon.png", img_size, img_size, mask='auto'),
-            Image("branding/seasonal_icon.png", img_size, img_size, mask='auto'),
+            Image("branding/weather_icon.png", img_size, img_size, mask="auto"),
+            Image("branding/historic_icon.png", img_size, img_size, mask="auto"),
+            Image("branding/economic_icon.png", img_size, img_size, mask="auto"),
+            Image("branding/seasonal_icon.png", img_size, img_size, mask="auto"),
         ]
 
         text_parastyle = ParagraphStyle(
@@ -965,11 +1012,12 @@ class SingleSiteReport:
 
         img_text_table = [[img, text] for img, text in zip(img_list, text_list)]
 
-        text = Paragraph("Understanding the Features",
-                         ParagraphStyle('name',
-                                        fontName='AtlasGrotesk-Bold',
-                                        fontSize=14,
-                                        textColor=self.navy))
+        text = Paragraph(
+            "Understanding the Features",
+            ParagraphStyle(
+                "name", fontName="AtlasGrotesk-Bold", fontSize=14, textColor=self.navy
+            ),
+        )
 
         insights = Table(
             [
@@ -979,20 +1027,24 @@ class SingleSiteReport:
                 img_text_table[2],
                 img_text_table[3],
             ],
-            colWidths=[40, 6.5*inch]
+            colWidths=[40, 6.5 * inch],
         )
 
         insights.setStyle(self.rounded_corners)
-        insights.setStyle(TableStyle([
-            ("SPAN", (0, 0), (-1, 0)),
-            ("ALIGN", (0, 0), (0, 0), ("LEFT")),
-            ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
-            ("FONTSIZE", (0, 0), (0, 0), 14),
-            ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
-            ("ALIGN", (0, 1), (0, -1), ("CENTER")),
-            ("VALIGN", (0, 1), (0, -1), ("MIDDLE")),
-            ("TOPPADDING", (0, 1), (0, -1), 5),
-        ]))
+        insights.setStyle(
+            TableStyle(
+                [
+                    ("SPAN", (0, 0), (-1, 0)),
+                    ("ALIGN", (0, 0), (0, 0), ("LEFT")),
+                    ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
+                    ("FONTSIZE", (0, 0), (0, 0), 14),
+                    ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
+                    ("ALIGN", (0, 1), (0, -1), ("CENTER")),
+                    ("VALIGN", (0, 1), (0, -1), ("MIDDLE")),
+                    ("TOPPADDING", (0, 1), (0, -1), 5),
+                ]
+            )
+        )
 
         # text = f"""
         #     <font face="AtlasGrotesk-Bold" size=14>Understanding the Features</font><br/><br/>

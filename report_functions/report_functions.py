@@ -457,6 +457,9 @@ def package_distribution_plot(col, title, num_packages, color_dict):
         for text in texts:
             text.set_fontsize(24)
         plt.subplots_adjust(right=1.0, left=0.4)
+        # Leaving the rest of the code in, but destroying the legend for sizing purposes
+        legend.remove()
+        plt.draw()
 
     plt.tight_layout()
 
