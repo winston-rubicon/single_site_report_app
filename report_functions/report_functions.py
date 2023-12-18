@@ -7,17 +7,17 @@ import boto3
 import os
 import json
 
-filename = os.environ.get('FILENAME')
-bucket_name = os.environ.get('BUCKET_NAME')
-s3 = boto3.client('s3')
-s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
-file_content = s3_object['Body'].read().decode('utf-8')
-data = json.loads(file_content)
+# filename = os.environ.get('FILENAME')
+# bucket_name = os.environ.get('BUCKET_NAME')
+# s3 = boto3.client('s3')
+# s3_object = s3.get_object(Bucket=bucket_name, Key=filename)
+# file_content = s3_object['Body'].read().decode('utf-8')
+# data = json.loads(file_content)
 
-# bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
-# with open(filename, "r") as f:
-#     data = json.load(f)
+bucket_name = "ncs-washindex-single-site-reports-815867481426"
+filename = "fake_data/10_2023.json"
+with open(filename, "r") as f:
+    data = json.load(f)
 
 # Register AtlasGrotesk font
 font_manager.fontManager.addfont("branding/fonts/AtlasGrotesk-Regular.ttf")
@@ -457,6 +457,9 @@ def package_distribution_plot(col, title, num_packages, color_dict):
         for text in texts:
             text.set_fontsize(24)
         plt.subplots_adjust(right=1.0, left=0.4)
+        # Leaving the rest of the code in, but destroying the legend for sizing purposes
+        legend.remove()
+        plt.draw()
 
     plt.tight_layout()
 
