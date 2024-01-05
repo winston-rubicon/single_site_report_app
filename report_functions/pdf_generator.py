@@ -804,7 +804,7 @@ class SingleSiteReport:
         return table
 
     def wash_index(self):
-        self.elements.append(Spacer(1, 20))
+        self.elements.append(Spacer(1, 10))
         # Simple table with index score on left, text with numbers on right
         index_img = Image(
             self.plot_dict["wash_index_score"], width=3.25 * inch, height=2.25 * inch
@@ -906,7 +906,8 @@ class SingleSiteReport:
                     colors=[color.strip("#") for color in color_dict.values()],
                     text_size=12,
                 )
-            ], colWidths=[1.25*inch]
+            ],
+            colWidths=[1.25 * inch],
         )
         feat_legend.setStyle(
             TableStyle(
@@ -919,7 +920,7 @@ class SingleSiteReport:
 
         table = Table(
             [
-                ["Feature Contribution to the Prediction", ""],
+                ["Wash Index Key Factors", ""],
                 [feat_chart, ""],
                 ["", ""],
                 ["", feat_legend],
@@ -946,7 +947,7 @@ class SingleSiteReport:
         )
         self.elements.append(table)
 
-        self.elements.append(Spacer(1, 5))
+        # self.elements.append(Spacer(1, 5))
 
         ### Creating a temporary textbox that will briefly describe each factor. Below will be for later reports.
         # text = f"""
@@ -987,21 +988,21 @@ class SingleSiteReport:
             fontSize=10,
             textColor=self.navy,
             backColor=self.lightgrey,
-            borderPadding=10,
-            leading=15,
+            borderPadding=5,
+            leading=10,
         )
 
         text_list = [
             Paragraph(
-                f"""<font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.<br/>""",
+                f"""<font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.""",
                 text_parastyle,
             ),
             Paragraph(
-                f"""<font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and patterns.<br/>""",
+                f"""<font face="AtlasGrotesk-Bold">Historic</font> - Utilizing data from the site's past, this feature captures historical trends and \npatterns.""",
                 text_parastyle,
             ),
             Paragraph(
-                f"""<font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.<br/>""",
+                f"""<font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.""",
                 text_parastyle,
             ),
             Paragraph(
@@ -1019,9 +1020,19 @@ class SingleSiteReport:
             ),
         )
 
+        descriptive_text = Paragraph(
+            """The key factors of the Wash Index prediction are identified by evaluating individual 
+            feature contributions to the model's predictions and then grouping them into broader categories, 
+            providing insight into their collective impact on the index.""",
+            ParagraphStyle(
+                "blah", fontName="AtlasGrotesk", fontSize=10, textColor=self.navy
+            ),
+        )
+
         insights = Table(
             [
                 ["Understanding the Features", ""],
+                [descriptive_text, ""],
                 img_text_table[0],
                 img_text_table[1],
                 img_text_table[2],
@@ -1035,13 +1046,14 @@ class SingleSiteReport:
             TableStyle(
                 [
                     ("SPAN", (0, 0), (-1, 0)),
+                    ("SPAN", (0, 1), (-1, 1)),
                     ("ALIGN", (0, 0), (0, 0), ("LEFT")),
                     ("FONTNAME", (0, 0), (0, 0), "AtlasGrotesk-Bold"),
                     ("FONTSIZE", (0, 0), (0, 0), 14),
                     ("TEXTCOLOR", (0, 0), (0, 0), self.navy),
                     ("ALIGN", (0, 1), (0, -1), ("CENTER")),
                     ("VALIGN", (0, 1), (0, -1), ("MIDDLE")),
-                    ("TOPPADDING", (0, 1), (0, -1), 5),
+                    ("TOPPADDING", (0, 1), (0, -1), 2),
                 ]
             )
         )
@@ -1050,7 +1062,7 @@ class SingleSiteReport:
         #     <font face="AtlasGrotesk-Bold" size=14>Understanding the Features</font><br/><br/>
         #     <font face="AtlasGrotesk" size=10>
         #     <font face="AtlasGrotesk-Bold">Weather</font> - Covers a range of local weather variables, such as temperature and precipitation, collected from nearby stations.<br/>
-        #     <font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and patterns.<br/>
+        #     <font face="AtlasGrotesk-Bold">Historic</font> - Utilizes data from the site's past, including historical trends and \npatterns.<br/>
         #     <font face="AtlasGrotesk-Bold">Economic</font> - Integrates local economic indicators, like the Consumer Price Index (CPI) and unemployment rates, among other metrics.<br/>
         #     <font face="AtlasGrotesk-Bold">Seasonal</font> - Captures patterns related to different times of the year, recognizing shifts in trends due to seasons and periodic events.
         #     </font><br/>
