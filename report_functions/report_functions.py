@@ -15,7 +15,7 @@ file_content = s3_object['Body'].read().decode('utf-8')
 data = json.loads(file_content)
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
+# filename = "fake_data/10_2023_fake.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 
@@ -59,8 +59,6 @@ for date in month_year_list:
     month, year = date.split("_")
     month_name = calendar.month_abbr[int(month)]
     if int(month) == current_month:
-        month_labels.append(f"{month_name} {year}")
-    elif month_name == "Jan":
         month_labels.append(f"{month_name} {year}")
     else:
         month_labels.append(month_name)
@@ -108,8 +106,6 @@ def line_plot(col, ylabel, legend_labels=None):
                 month_name = calendar.month_abbr[int(month)]
                 if int(month)==current_month:
                     this_month_labels.append(f"{month_name} {year}")
-                elif month_name == "Jan":
-                    this_month_labels.append(f"{month_name} {year}")
                 else:
                     this_month_labels.append(month_name)
             # First get the appropriate y data
@@ -135,8 +131,6 @@ def line_plot(col, ylabel, legend_labels=None):
             month, year = date.split("_")
             month_name = calendar.month_abbr[int(month)]
             if int(month)==current_month:
-                this_month_labels.append(f"{month_name} {year}")
-            elif month_name == "Jan":
                 this_month_labels.append(f"{month_name} {year}")
             else:
                 this_month_labels.append(month_name)
@@ -212,8 +206,6 @@ def multi_line_plot(cols, ylabel, legend_labels):
             month, year = date.split("_")
             month_name = calendar.month_abbr[int(month)]
             if int(month)==current_month:
-                month_labels.append(f"{month_name} {year}")
-            elif month_name == "Jan":
                 month_labels.append(f"{month_name} {year}")
             else:
                 month_labels.append(month_name)

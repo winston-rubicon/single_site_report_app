@@ -16,7 +16,7 @@ file_content = s3_object['Body'].read().decode('utf-8')
 data = json.loads(file_content)
 
 # bucket_name = "ncs-washindex-single-site-reports-815867481426"
-# filename = "fake_data/10_2023.json"
+# filename = "fake_data/10_2023_fake.json"
 # with open(filename, "r") as f:
 #     data = json.load(f)
 
@@ -256,7 +256,7 @@ pdf = pdf_class.return_pdf()
 
 rf.save_to_s3(
     bucket_name,
-    f"{data['hub_id']}/{site_number}/reports/{data['hub_name'].replace(' ','_')}_Site_{site_number}_monthly_report_{current_month}_{current_year}.pdf",
+    f"{data['hub_id']}/{current_year}_{current_month}/reports/{data['hub_name'].replace(' ','_')}_Site_{site_number}_monthly_report_{current_year}_{current_month}.pdf",
     pdf,
 )
 
